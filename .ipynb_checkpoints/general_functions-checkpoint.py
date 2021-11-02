@@ -2,6 +2,7 @@ import sys
 import os 
 from Bio import SeqIO
 import pandas as pd
+import ipywidgets as widgets
 
 pygad_loc = os.path.dirname(os.path.abspath(__file__))
 
@@ -66,3 +67,6 @@ def init_parameters(aa_seq, codon_usage_table_loc=os.path.join(pygad_loc,'refere
     return(codon_to_int, gene_space)
 
 
+def sol_to_str(solution):
+    aa_seq = ''.join([codon_to_int[x] for x in solution])
+    return(aa_seq)
