@@ -5,7 +5,7 @@ pygad_loc = os.path.dirname(os.path.abspath(__file__))
 
 def gen_random_seqs(prot_seq, num_seqs):
     codon_usage_table_loc = os.path.join(pygad_loc,'references','codon_usage.getex.txt')
-    codon_to_int, codon_space = init_parameters(codon_usage_table_loc, prot_seq) 
+    codon_to_int, codon_space = init_parameters(aa_seq,codon_usage_table_loc) 
     
     positions = len(codon_space)
     size_vector = [len(codon_pos) for codon_pos in codon_space] 
@@ -29,11 +29,13 @@ def translator(seq):
         else:
             back_table[val].append(key)
     
-    aa_seq = ''  
-    for i in range(0, len(seq), 3):
-        codon = seq[i:i+3]
-        if len(codon) ==3:
-            aa_seq = aa_seq + forward_table[codon]
-        else:
-            print('Sequence not divisible by 3, ends with:',codon)
+    for x,y in zip(seq_records[0],seq_records[1]):
+        seq = str(y).upper()
+        aa_seq = ''  
+        for i in range(0, len(seq), 3):
+            codon = seq[i:i+3]
+            if len(codon) ==3:
+                aa_seq = aa_seq + forward_table[codon]
+            else:
+                print('Sequence not divisible by 3, ends with:',codon)
     return(aa_seq)
