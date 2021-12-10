@@ -192,7 +192,7 @@ class GA_super(pygad.GA):
         else:
             toc = time.time()
             elapsed = toc-self.tic
-            if elapsed > 600:
+            if elapsed > 10800:
                 pop_fitness = [2 for x in self.population]
             else:
                 data = [(x,0) for x in self.population]
