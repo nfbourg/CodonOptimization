@@ -12,173 +12,239 @@ def run_GA(aa_seq,
            bai_on = True, 
            cpg_on = True,
            threads = 1):
+    """Wrapper to initialize and run the genetic algorithm
 
+    Args:
+        aa_seq (str): amino acid string of the protein to be codon optimized
+        tissue (str): tissue type of the protein for cai/bai.
+        generations (int): Generations of the genetic algorithm
+        cai_on (bool, optional): Turns cai metric on/off. Defaults to True.
+        bai_on (bool, optional): Turns bai metric on/off. Defaults to True.
+        cpg_on (bool, optional): Turns cpg metric on/off. Defaults to True.
+        threads (int, optional): How many multiprocessing threads to use. Defaults to 1.
 
     
-    # Initialize
-    cai_w = 1 *cai_on
-    bai_w = 1 *bai_on
-    cpg_w = 1 *cpg_on
-    total_weight = sum([cai_w,bai_w,cpg_w])
-    codon_to_int, gene_space = init_parameters(aa_seq)
-    gene_space_int = [[codon_to_int[x] for x in y] for y in gene_space]
-    
-#     ======================== 
-#     # fitness function variables
-#     desired_output = 1 # Function output.
-#     num_genes = len(gene_space)
-#     num_generations = 100 # Number of generations.
-#     num_parents_mating = 5 # Number of solutions to be selected as parents in the mating pool.
-#     sol_per_pop = population_size 
-#     parent_selection_type = "sss" # Type of parent selection.
-#     keep_parents = 5 # Number of parents to keep in the next population. -1 means keep all parents and 0 means keep nothing.
-#     crossover_type = "two_points" # Type of the crossover operator.
-#     # Parameters of the mutation operation.
-#     mutation_type = "random" # Type of the mutation operator.
-#     mutation_percent_genes = 5 # Percentage of genes to mutate. This parameter has no action if the parameter mutation_num_genes exists or when mutation_type is None.
-#     ========================
+    Returns:
+        GA_super: returns wrapped pygad.GA instance
+    """
 
-    ga_instance = GA_super(codon_to_int,gene_space,gene_space_int,tissue,generations,threads)
-    ga_instance = GA_super(codon_to_int,gene_space,gene_space_int,tissue,generations,threads)
-    
+    pygad.GA = updated_pygad(tissue,cai_on,cai_on,cai_on)
+
+    ga_instance = GA_super(aa_seq, generations, threads)
+
     ga_instance.run()
 
-    best_solution_generation=ga_instance.best_solution_generation
+    return ga_instance
 
-    return(ga_instance)
+class updated_pygad(pygad.GA):
 
- 
-    
+    def __init__(self, tissue, cai_on, bai_on, cpg_on):
+        """Add additional parameters to the default pygad class
 
+        Args:
+            pygad ([type]): [description]
+            tissue ([type]): [description]
+            cai_on ([type]): [description]
+            cai_on ([type]): [description]
+            cai_on ([type]): [description]
 
-    # def fitness_wrapper(solution):
-    #     return fitness_func(solution, 0)
+        Returns:
+            [type]: [description]
+        """
 
+        pygad.GA.cai_on = cai_on
+        pygad.GA.bai_on = bai_on
+        pygad.GA.cpg_on = cpg_on
+        pygad.GA.cai_weight_dict = get_codon_weights(tissue)
+        pygad.GA.bai_weight_dict = get_bicodon_weights(tissue) 
+
+        pygad.GA.fit_dict = {}
 
 class GA_super(pygad.GA):
-    #     def __init__(self,codon_to_int,*args,**kwargs):
-    #         self.pool = Pool(processes=2)    s
-    #         self.all_sols = {}
-    #         self.codon_to_int = codon_to_int
-    # #         super().__init__(fitness_func=self.fitness_func,*args,**kwargs)
-    #         variables = get_defaults()
-    #         super().__init__(fitness_func=self.fitness_func,*args,**kwargs)
+    """Wrapper class for pygad that contains all additional initialization for the codon optimization"""
+     
+    def __init__(self, aa_seq, generations, threads):
+        self.time_fit = []
+        self.tic = time.time() # start timer
+        self.time_limit = 1e10 
+        self.pool = Pool(processes=threads)    
+        self.threads=threads
+        self.init_parameters(aa_seq, generations)
+        # set parameters on the pygad object 
+        super().__init__(fitness_func=self.fitness_func,**self.variable_dict)
 
+    def init_parameters(self, aa_seq, generations, 
+        codon_usage_table_loc=os.path.join(pygad_loc,'references/codon_usage.getex.txt')):
+        """Retrieve default parameters for pygad.  
 
+        Pygad requires an input gene space that is integers, so the aa_seq needs to be converted to 
+        an integer list with each integer corresponding to a unique codon. The function also requires
+        allof the defualt parameters for pygad.
+
+        Args:
+            aa_seq (str): Input amino acid sequence to codon optimize
+            codon_usage_table_loc (str): location of codon usage table
             
-        def __init__(self,codon_to_int,gene_space,gene_space_int,tissue,generations,threads):
-            self.time_fit = []
-            self.tic = time.time()
-            self.pool = Pool(processes=threads)    
-            self.threads=threads
-            pygad.GA.all_sols = {}
-            pygad.GA.codon_to_int = codon_to_int
-            pygad.GA.cai_weight_dict = get_codon_weights(tissue)
-            pygad.GA.bai_weight_dict = get_bicodon_weights(tissue)            
-            variable_dict = self.get_params(gene_space_int,generations)
-            super().__init__(fitness_func=self.fitness_func,**variable_dict)
+        Assigns:
+            codon_to_int (dict): dict to map codons to ints and back
+            gene_space_int (list[list]): list of lists where each index corresponds to a position
+                in the input aa_seq, and the list in that index are all synonymous codons for the aa
+                in the pos for the original seq
+            variable_dict (dict): dictionary of following defualt values for pygad
+                num_genes (int): number of genes in the gene space
+                num_generations (int): Number of generations.
+                num_parents_mating (int): Number of solutions to be selected as 
+                    parents in the mating pool.
+                sol_per_pop (int): population size 
+                parent_selection_type (str): # Type of parent selection, 
+                    sss is steady state selection 
+                keep_parents (int): Number of parents to keep in the next population.
+                        -1 means keep all parents and 0 means keep nothing.
+                crossover_type (str): Type of the crossover operator. 
+                mutation_type (str): Type of the mutation operator.
+                mutation_percent_genes (int): Percentage of genes to mutate. 
+                'stop_criteria': If the fitness fnction reaches 1, it will stop
+                'gene_type' (type): expected object type for each gene.  Genes (In our 
+                    case each codon) is uniquely mapped to an integer.
+                'on_generation' (func): callback function to be called each gen
+        """         
 
-    
-        # ftiness function
-        @staticmethod
-        def fitness_func(solution, ind):
-            
-            cai_w,bai_w,cpg_w = 1,1,1
-            total_weight=3
-            all_sols = {}
-            if not type(solution) is str:
-                codon_to_int = pygad.GA.codon_to_int
-                seq_aa = ''.join([codon_to_int[x] for x in solution])
+        codon_usage_table = pd.read_csv(codon_usage_table_loc,sep='\t')
+        forward_table = pd.Series(codon_usage_table.AA.values,index=codon_usage_table.Codon).to_dict()
+
+        back_table = {}
+        for key in forward_table:
+            val = forward_table[key]
+            if val not in back_table.keys():
+                back_table[val] = [key]
             else:
-                seq_aa = solution
+                back_table[val].append(key)
 
-            tmp_dict = {}
+        codon_to_int = {}
+        i=0
+        for codon in forward_table.keys():
+            codon_to_int[codon] = i
+            codon_to_int[i] = codon
+            i += 1
 
-            #Check for redundancy
-            if seq_aa in all_sols.keys():
-                fitness = all_sols[seq_aa]['fitness']
+        gene_space = []
+        for aa in aa_seq:
+            all_cds = back_table[aa]
+            gene_space.append(all_cds)
 
-            else:
-                fitness = 0
+        gene_space_int = [[codon_to_int[x] for x in y] for y in gene_space]
 
-                cai_weight_dict = pygad.GA.cai_weight_dict
-                bai_weight_dict = pygad.GA.bai_weight_dict
-    #             if cai_on:
-                cai = get_cai(seq_aa, cai_weight_dict)
-                fitness += cai*cai_w
-                tmp_dict['cai'] = cai
-
-    #             if bai_on:
-                bai = get_bai(seq_aa, bai_weight_dict)
-                fitness += bai*bai_w
-                tmp_dict['bai'] = bai
-
-    #             if cpg_on:
-                cpg = get_cpg(seq_aa)
-                fitness += cpg*cpg_w
-                tmp_dict['cpg'] = cpg
-
-                fitness = fitness/total_weight
-                tmp_dict['fitness'] = fitness
-                all_sols[seq_aa] = tmp_dict
-
+        population_size = 750
+        variables={
+                'num_generations':generations,
+                'sol_per_pop':population_size, 
+                'num_parents_mating':round(.25*population_size), 
+                'num_genes':len(gene_space_int),
+                'parent_selection_type':"sss",
+                'keep_parents':round(.25*population_size),
+                'crossover_type':"two_points",
+                'mutation_type':"random",
+                'mutation_percent_genes':5,
+                'on_generation':callback_generation,
+                'gene_type':int,
+                'stop_criteria':['reach_1'],
+                'gene_space':gene_space_int}
                 
-            return fitness
+        self.codon_to_int = codon_to_int
+        self.gene_space_int = gene_space_int
+        self.variable_dict = variables
+
+    @staticmethod
+    def fitness_func(solution, ind):
+        """fitness function calculates metric for the 
+
+        Args:
+            solution ([list or str]): list of int or str of aa_seq
+            ind (int): placeholder val to satisfy req of pygad class
+
+        Returns:
+            fitness (int): fitness value [0,1]
+        """
+        
+        # weights for metrics
+        cai_w = 1 *pygad.GA.cai_on
+        bai_w = 1 *pygad.GA.bai_on
+        cpg_w = 1 *pygad.GA.cpg_on
+        total_weight = sum([cai_w,bai_w,cpg_w])
+
+        fitness = 0
+
+        # if not str, convert from list[int] to string
+        if not type(solution) is str:
+            codon_to_int = pygad.GA.codon_to_int
+            seq_aa = ''.join([codon_to_int[x] for x in solution])
+        else:
+            seq_aa = solution
+
+        if pygad.GA.cai_on:
+            cai = get_cai(seq_aa, pygad.GA.cai_weight_dict)
+            fitness += cai*cai_w
+
+        if pygad.GA.bai_on:
+            bai = get_bai(seq_aa, pygad.GA.bai_weight_dict)
+            fitness += bai*bai_w
+
+        if pygad.GA.cpg_on:
+            cpg = get_cpg(seq_aa)
+            fitness += cpg*cpg_w
             
-        # @staticmethod
-        def get_params(self,gene_space_int,generations):
-            population_size = 750
-            variables={
-                    'num_generations':generations,
-                    'sol_per_pop':population_size, 
-                    'num_parents_mating':round(.25*population_size), 
-                    'num_genes':len(gene_space_int),
-                    'parent_selection_type':"sss",
-                    'keep_parents':round(.25*population_size),
-                    'crossover_type':"two_points",
-                    'mutation_type':"random",
-                    'mutation_percent_genes':5,
-                    'on_generation':callback_generation,
-                    'gene_type':int,
-                    'stop_criteria':['reach_1'],
-                    'gene_space':gene_space_int}
-            return(variables)
+        return fitness/total_weight
+        
+    def int_to_str(self,sol):
+        """converts a codon list[int] to aa string"""
+        seq_aa = ''.join([self.codon_to_int[x] for x in sol])
+        return seq_aa
 
-        def int_to_str(self,sol):
-            seq_aa = ''.join([self.codon_to_int[x] for x in sol])
-            return seq_aa
+    def add_to_dict(self, seqs_to_add):
+        """Add the sequences and their fitness to the fitness dict
 
-        def add_to_dict(self, seqs_to_add):
+        Args:
+            seqs_to_add ([type]): [description]
+        """
+        if self.threads==1:
+            pop_fitness = [self.fitness_func(x,0) for x in seqs_to_add]
 
-            if self.threads==1:
-                pop_fitness = [self.fitness_func(x,0) for x in seqs_to_add]
-
+        else:
+            toc = time.time()
+            elapsed = toc-self.tic
+            if elapsed > self.time_limit:
+                pop_fitness = [2 for x in seqs_to_add]
             else:
-                toc = time.time()
-                elapsed = toc-self.tic
-                if elapsed > 10800:
-                    pop_fitness = [2 for x in seqs_to_add]
-                else:
-                    data = [(x,0) for x in seqs_to_add]
-                    pop_fitness = self.pool.starmap(self.fitness_func, data)
+                data = [(x,0) for x in seqs_to_add]
+                pop_fitness = self.pool.starmap(self.fitness_func, data)
 
-            for i in range(len(seqs_to_add)): 
-                self.all_sols[seqs_to_add[i]] = pop_fitness[i]
+        for i in range(len(seqs_to_add)): 
+            self.fit_dict[seqs_to_add[i]] = pop_fitness[i]
 
-        def cal_pop_fitness(self):
-            seqaa_population = [self.int_to_str(pop) for pop in self.population]
-            seqs_missing = [x for x in seqaa_population if x not in self.all_sols.keys()]
-            self.add_to_dict(seqs_missing)
-            pop_fitness = [self.all_sols[x] for x in seqaa_population]
-            pop_fitness = np.array(pop_fitness)
-            return pop_fitness
+    def cal_pop_fitness(self):
+        """overwrites the base cal_pop_fitness function from pygad
+
+        Rewrites the cal_pop_fitness to add a 1) a solution dictionary and 2) mp compatibility
+
+        Returns:
+            pop_fitness list[int]: list of population fitness
+        """
+        seqaa_population = [self.int_to_str(pop) for pop in self.population]
+        seqs_missing = [x for x in seqaa_population if x not in self.fit_dict.keys()]
+        self.add_to_dict(seqs_missing)
+        pop_fitness = [self.fit_dict[x] for x in seqaa_population]
+        pop_fitness = np.array(pop_fitness)
+        return pop_fitness
+
+
 
 def callback_generation(ga_instance):
-#         print("Generation = {generation}".format(generation=ga_instance.generations_completed))
-#         print("Fitness    = {fitness}".format(fitness=ga_instance.best_solution()[1]))
-#         print("Change     = {change}".format(change=ga_instance.best_solution()[1] - last_fitness))
-    # global stop
+    """callback function for each GA gen
+
+    Args:
+        ga_instance ([type]): [description]
+    """
     last_fitness = ga_instance.best_solution()[1]
-    # toc = time.time()
-    # elapsed = toc-ga_instance.tic
-    # ga_instance.time_fit.append((elapsed,last_fitness))
+    # print("Generation = {generation}".format(generation=ga_instance.generations_completed))
+    # print("Fitness    = {fitness}".format(fitness=ga_instance.best_solution()[1]))
+    # print("Change     = {change}\n".format(change=ga_instance.best_solution()[1] - last_fitness))
