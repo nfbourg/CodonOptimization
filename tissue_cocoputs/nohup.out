@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "gen_original_tables.py", line 30, in <module>
+    gtex_data = pd.read_csv('GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct',sep='\t',skiprows=2)
+  File "/data/software/anaconda3/envs/bfx-codon/lib/python3.7/site-packages/pandas/util/_decorators.py", line 311, in wrapper
+    return func(*args, **kwargs)
+  File "/data/software/anaconda3/envs/bfx-codon/lib/python3.7/site-packages/pandas/io/parsers/readers.py", line 586, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/data/software/anaconda3/envs/bfx-codon/lib/python3.7/site-packages/pandas/io/parsers/readers.py", line 488, in _read
+    return parser.read(nrows)
+  File "/data/software/anaconda3/envs/bfx-codon/lib/python3.7/site-packages/pandas/io/parsers/readers.py", line 1047, in read
+    index, columns, col_dict = self._engine.read(nrows)
+  File "/data/software/anaconda3/envs/bfx-codon/lib/python3.7/site-packages/pandas/io/parsers/c_parser_wrapper.py", line 223, in read
+    chunks = self._reader.read_low_memory(nrows)
+  File "pandas/_libs/parsers.pyx", line 801, in pandas._libs.parsers.TextReader.read_low_memory
+  File "pandas/_libs/parsers.pyx", line 880, in pandas._libs.parsers.TextReader._read_rows
+  File "pandas/_libs/parsers.pyx", line 1026, in pandas._libs.parsers.TextReader._convert_column_data
+  File "pandas/_libs/parsers.pyx", line 1073, in pandas._libs.parsers.TextReader._convert_tokens
+  File "pandas/_libs/parsers.pyx", line 1129, in pandas._libs.parsers.TextReader._convert_with_dtype
+  File "/data/software/anaconda3/envs/bfx-codon/lib/python3.7/site-packages/pandas/core/dtypes/common.py", line 1420, in is_extension_array_dtype
+    def is_extension_array_dtype(arr_or_dtype) -> bool:
+KeyboardInterrupt

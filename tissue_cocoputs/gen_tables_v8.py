@@ -10,8 +10,6 @@ import mygene
 
 # human_cds
 
-
-
 def subset_and_write(df,col_list,fn):
     df = df.set_index('transcript_id')
     df = df[col_list]
@@ -55,7 +53,7 @@ def generate_bicodon_table(refseqs,weights,file_id):
     bcds_weighted = (bcds_sorted.T * weights).sum(axis=1)
     bcds_weighted.index = bcds_weighted.index.str.upper()
     bcds_weighted.to_frame().transpose().to_csv(
-        'bicodon_tables/GTEx_{}_{}_v7.tsv'.format(tissue,file_id), sep='\t', index=False)
+        'bicodon_tables/GTEx_{}_{}_v8.tsv'.format(tissue,file_id), sep='\t', index=False)
     print('Generated Bicodon Table')
 
 
@@ -69,7 +67,7 @@ def generate_codon_table(refseqs,weights,file_id):
     output = output.drop(columns='Fraction')
     output.loc[:,'Number'] = cds_weighted.values.astype(int)
     output.loc[:,'Frequency'] = round(output['Number'] / sum(output['Number']) * 1000,1)
-    output.to_csv('codon_tables/GTEx_{}_{}_v7.tsv'.format(tissue,file_id), sep='\t', index=False)
+    output.to_csv('codon_tables/GTEx_{}_{}_v8.tsv'.format(tissue,file_id), sep='\t', index=False)
     print('Generated Codon Table')
 
 if __name__ == '__main__':
@@ -78,12 +76,8 @@ if __name__ == '__main__':
     os.chdir('/grid/home/nbourgeois/codonOpt/tissue_cocoputs/data')
 
     # New Data
-    # gtex_data = pd.read_csv('GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct',sep='\t',skiprows=2)
-    # gtex_samp_data= pd.read_csv('GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt',sep='\t')
-
-    # Original Data
-    gtex_data = pd.read_csv('ref/GTEx_Analysis_2016-01-15_v7_RSEMv1.2.22_transcript_tpm.txt',sep='\t')
-    gtex_samp_data= pd.read_csv('ref/GTEx_v7_Annotations_SampleAttributesDS.txt',sep='\t')
+    gtex_data = pd.read_csv('ref/GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct',sep='\t',skiprows=2)
+    gtex_samp_data= pd.read_csv('ref/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt',sep='\t')
 
     print('Read in File')
 
@@ -113,7 +107,6 @@ if __name__ == '__main__':
     geneSyms = mg.querymany(cds.index.values, scopes='refseq',
                             fields='ensembl.transcript', species='human')
 
-    tissues = ['Liver']
 
     for tissue in tissues:
         print(tissue)
@@ -124,7 +117,7 @@ if __name__ == '__main__':
         tissue = tissue.replace(" - ", "_").replace(" ", "_").replace("_(BA9)", "")
 
         # save tissue table
-        gtex_data_tissue.to_csv('TPM/GTEx_{}_TPM_orig.tsv'.format(tissue),sep='\t')
+        gtex_data_tissue.to_csv('TPM/GTEx_{}_TPM_v8.tsv'.format(tissue),sep='\t')
 
         # reformat
         gtex_data_tissue['transcript_id'] = gtex_data_tissue['transcript_id'].str.split('.',expand=True)[0]
