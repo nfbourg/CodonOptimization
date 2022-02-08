@@ -82,3 +82,14 @@ tests/hidua_test.ipynb
 DeepPASTA_gpu/
 templates/.ipynb_checkpoints/select_sequences-checkpoint.ipynb
 templates/select_sequences.ipynb
+.ipynb_checkpoints/metrics-checkpoint.py
+__pycache__/general_functions.cpython-37.pyc
+__pycache__/metrics.cpython-37.pyc
+references/CoCoPUTs_codon_usage/bicodon_usage/.ipynb_checkpoints/Adipose_Subcutaneous.bicodon-checkpoint.txt
+tests/.ipynb_checkpoints/tissue_cocoputs_test-checkpoint.ipynb
+tissue_cocoputs/.ipynb_checkpoints/test-checkpoint.ipynb
+tissue_cocoputs/.ipynb_checkpoints/test-Copy1-checkpoint.ipynb
+.ipynb_checkpoints/metrics-checkpoint.py
+__pycache__/general_functions.cpython-37.pyc
+__pycache__/metrics.cpython-37.pyc
+tests/.ipynb_checkpoints/tissue_cocoputs_test-checkpoint.ipynb
