@@ -152,7 +152,8 @@ def get_bicodon_weights(tissue):
 def get_bai(seq, weight_dict):
     if type(weight_dict) is str:
         weight_dict = get_bicodon_weights(weight_dict)
-        
+       
+    
     # sliding window bicodon, excludes the last codon
     weights = [weight_dict[seq[i:i+6]] for i in range(0, len(seq)-6, 3)] #convert to codon_list -> use weight dictionary
     
