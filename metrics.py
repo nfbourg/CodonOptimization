@@ -57,7 +57,7 @@ def predictSites_multi( fastaIds,fastaSeqs,threshold=.1):
             coord = list( range(1, len( donor_prob ) ) )
                     
             # custom metric
-            results[seq_id] = (len(acceptor_prob[acceptor_prob > threshold]) + len(donor_prob[donor_prob > .1]))/2
+            results[seq_id] = (len(acceptor_prob[acceptor_prob > threshold]) + len(donor_prob[donor_prob > threshold]))/2
         return(results)
     except tf.errors as e:
         # Splice AI custome sequeence prediction
