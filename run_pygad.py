@@ -28,7 +28,7 @@ def run_GA(aa_seq,
         GA_super: returns wrapped pygad.GA instance
     """
 
-    pygad.GA = Updated_GA(tissue,cai_on,cai_on,cai_on)
+    pygad.GA = Updated_GA(tissue,cai_on,bai_on,cpg_on)
 
     ga_instance = GA_super(aa_seq, generations, threads)
 

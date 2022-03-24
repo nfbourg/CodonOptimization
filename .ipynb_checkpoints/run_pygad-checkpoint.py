@@ -28,7 +28,7 @@ def run_GA(aa_seq,
         GA_super: returns wrapped pygad.GA instance
     """
 
-    pygad.GA = updated_pygad(tissue,cai_on,cai_on,cai_on)
+    pygad.GA = Updated_GA(tissue,cai_on,bai_on,cpg_on)
 
     ga_instance = GA_super(aa_seq, generations, threads)
 
@@ -36,7 +36,7 @@ def run_GA(aa_seq,
 
     return ga_instance
 
-class updated_pygad(pygad.GA):
+class Updated_GA(pygad.GA):
 
     def __init__(self, tissue, cai_on, bai_on, cpg_on):
         """Add additional parameters to the default pygad class

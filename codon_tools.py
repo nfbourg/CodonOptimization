@@ -1,12 +1,14 @@
 import os
 import pandas as pd
 import random 
+from general_functions import *
+
 
 pygad_loc = os.path.dirname(os.path.abspath(__file__))
 
 def gen_random_seqs(prot_seq, num_seqs):
     codon_usage_table_loc = os.path.join(pygad_loc,'references','codon_usage.getex.txt')
-    codon_to_int, codon_space = init_parameters(prot_seq, codon_usage_table_loc) 
+    codon_to_int, codon_space = init_parameters_fun(prot_seq, codon_usage_table_loc) 
     
     positions = len(codon_space)
     size_vector = [len(codon_pos) for codon_pos in codon_space] 
@@ -14,7 +16,7 @@ def gen_random_seqs(prot_seq, num_seqs):
     for i in range(num_seqs):
         rand_index = [random.randrange(size) for size in size_vector]
         seqs[i] = ''.join(([space[ind] for ind, space in zip(rand_index,codon_space)]))
-    return(seqs)git c
+    return(seqs)
 
 def translator(seq):
     global forward_table
