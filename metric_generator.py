@@ -101,7 +101,7 @@ class MetricGenerator():
     def codon_freq_int(self,seq):
         freqs = self.codon_freq_dist(seq)
         freqs = np.array(freqs) 
-        freq_sum = freqs[freqs < .9].sum()
+        freq_sum = freqs[freqs > .45].sum()
         return(freq_sum)
     # def calc_codon_freq():
 
