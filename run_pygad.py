@@ -10,7 +10,9 @@ def run_GA(aa_seq,
            generations,
            cai_on = True, 
            bai_on = True, 
-           cpg_on = True,
+           cpg_on = True, 
+           differential = True, 
+           tissue2 = 'Heart_Atrial_Appendage',
            threads = 1):
     """Wrapper to initialize and run the genetic algorithm
 
@@ -28,7 +30,7 @@ def run_GA(aa_seq,
         GA_super: returns wrapped pygad.GA instance
     """
 
-    pygad.GA = Updated_GA(tissue,cai_on,bai_on,cpg_on)
+    pygad.GA = Updated_GA(tissue,cai_on,bai_on,cpg_on,differential,tissue2)
 
     ga_instance = GA_super(aa_seq, generations, threads)
 
@@ -38,7 +40,7 @@ def run_GA(aa_seq,
 
 class Updated_GA(pygad.GA):
 
-    def __init__(self, tissue, cai_on, bai_on, cpg_on):
+    def __init__(self, tissue, cai_on, bai_on, cpg_on, differential=False,tissue2=False):
         """Add additional parameters to the default pygad class
 
         Args:
@@ -55,8 +57,13 @@ class Updated_GA(pygad.GA):
         pygad.GA.cai_on = cai_on
         pygad.GA.bai_on = bai_on
         pygad.GA.cpg_on = cpg_on
+        pygad.GA.differential = differential
         pygad.GA.cai_weight_dict = get_codon_weights(tissue)
         pygad.GA.bai_weight_dict = get_bicodon_weights(tissue) 
+
+        if differential:
+            pygad.GA.cai_weight_dict2 = get_codon_weights(tissue2)
+            pygad.GA.bai_weight_dict2 = get_bicodon_weights(tissue2) 
 
         pygad.GA.fit_dict = {}
 
@@ -183,10 +190,16 @@ class GA_super(pygad.GA):
 
         if pygad.GA.cai_on:
             cai = get_cai(seq_aa, pygad.GA.cai_weight_dict)
+            if pygad.GA.differential:
+                cai2 = get_cai(seq_aa, pygad.GA.cai_weight_dict2)
+                cai = cai-cai2
             fitness += cai*cai_w
 
         if pygad.GA.bai_on:
             bai = get_bai(seq_aa, pygad.GA.bai_weight_dict)
+            if pygad.GA.differential:
+                bai2 = get_bai(seq_aa, pygad.GA.bai_weight_dict2)
+                bai = bai-bai2
             fitness += bai*bai_w
 
         if pygad.GA.cpg_on:
