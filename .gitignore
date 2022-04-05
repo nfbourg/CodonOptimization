@@ -77,3 +77,8 @@ tests/benchmark/population/results/100kgen_OTC20.csv
 tests/benchmark/population/results/pah500.csv
 tests/benchmark/population/results/__pycache__/run_pygad_variable_pop_mp.cpython-37.pyc
 tests/benchmark/population/results/__pycache__/test_run_pygad_variable_population_multi.cpython-37.pyc
+__pycache__/*
+references/*
+tissue_cocoputs/data/*
+*.ipynb_checkpoints
+tissue_cocoputs/__pycache__/*
