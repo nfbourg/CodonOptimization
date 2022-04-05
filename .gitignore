@@ -99,3 +99,8 @@ __pycache__/metrics.cpython-37.pyc
 tests/.ipynb_checkpoints/tissue_cocoputs_test-checkpoint.ipynb
 tests/.ipynb_checkpoints/
 *.pyc
+__pycache__/*
+references/*
+tissue_cocoputs/data/*
+*.ipynb_checkpoints
+tissue_cocoputs/__pycache__/*
