@@ -3,6 +3,8 @@ from general_functions import *
 from metrics import *
 import time
 from multiprocessing.pool import Pool
+from datetime import datetime
+
 
         
 def run_GA(aa_seq, 
@@ -29,7 +31,10 @@ def run_GA(aa_seq,
     Returns:
         GA_super: returns wrapped pygad.GA instance
     """
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
 
+    print(f'Start Time: {current_time}')
     pygad.GA = Updated_GA(tissue,cai_on,bai_on,cpg_on,differential,tissue2)
 
     ga_instance = GA_super(aa_seq, generations, threads)
@@ -73,6 +78,7 @@ class GA_super(pygad.GA):
     def __init__(self, aa_seq, generations, threads):
         self.time_fit = []
         self.tic = time.time() # start timer
+        self.gen = 1
         self.time_limit = 1e10 
         self.pool = Pool(processes=threads)    
         self.threads=threads
@@ -257,6 +263,11 @@ def callback_generation(ga_instance):
     Args:
         ga_instance ([type]): [description]
     """
+    if ga_instance.gen%100 == 0:
+        print(f"Generation: {ga_instance.gen}")
+        print(f"Time Passed: {time.time() - ga_instance.tic} seconds\n")
+    ga_instance.gen = ga_instance.gen + 1
+
     last_fitness = ga_instance.best_solution()[1]
     # print("Generation = {generation}".format(generation=ga_instance.generations_completed))
     # print("Fitness    = {fitness}".format(fitness=ga_instance.best_solution()[1]))
