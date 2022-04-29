@@ -32,13 +32,13 @@ def translator(seq):
         else:
             back_table[val].append(key)
     
-    for x,y in zip(seq_records[0],seq_records[1]):
-        seq = str(y).upper()
-        aa_seq = ''  
-        for i in range(0, len(seq), 3):
-            codon = seq[i:i+3]
-            if len(codon) ==3:
-                aa_seq = aa_seq + forward_table[codon]
-            else:
-                print('Sequence not divisible by 3, ends with:',codon)
+    # for x,y in zip(seq_records[0],seq_records[1]):
+    seq = str(seq).upper()
+    aa_seq = ''  
+    for i in range(0, len(seq), 3):
+        codon = seq[i:i+3]
+        if len(codon) ==3:
+            aa_seq = aa_seq + forward_table[codon]
+        else:
+            print('Sequence not divisible by 3, ends with:',codon)
     return(aa_seq)

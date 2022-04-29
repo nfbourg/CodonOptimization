@@ -3,6 +3,8 @@ from general_functions import *
 from metrics import *
 import time
 from multiprocessing.pool import Pool
+from datetime import datetime
+
 
         
 def run_GA(aa_seq, 
@@ -10,7 +12,9 @@ def run_GA(aa_seq,
            generations,
            cai_on = True, 
            bai_on = True, 
-           cpg_on = True,
+           cpg_on = True, 
+           differential = True, 
+           tissue2 = 'Heart_Atrial_Appendage',
            threads = 1):
     """Wrapper to initialize and run the genetic algorithm
 
@@ -27,8 +31,11 @@ def run_GA(aa_seq,
     Returns:
         GA_super: returns wrapped pygad.GA instance
     """
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
 
-    pygad.GA = Updated_GA(tissue,cai_on,bai_on,cpg_on)
+    print(f'Start Time: {current_time}')
+    pygad.GA = Updated_GA(tissue,cai_on,bai_on,cpg_on,differential,tissue2)
 
     ga_instance = GA_super(aa_seq, generations, threads)
 
@@ -38,7 +45,7 @@ def run_GA(aa_seq,
 
 class Updated_GA(pygad.GA):
 
-    def __init__(self, tissue, cai_on, bai_on, cpg_on):
+    def __init__(self, tissue, cai_on, bai_on, cpg_on, differential=False,tissue2=False):
         """Add additional parameters to the default pygad class
 
         Args:
@@ -55,8 +62,13 @@ class Updated_GA(pygad.GA):
         pygad.GA.cai_on = cai_on
         pygad.GA.bai_on = bai_on
         pygad.GA.cpg_on = cpg_on
+        pygad.GA.differential = differential
         pygad.GA.cai_weight_dict = get_codon_weights(tissue)
         pygad.GA.bai_weight_dict = get_bicodon_weights(tissue) 
+
+        if differential:
+            pygad.GA.cai_weight_dict2 = get_codon_weights(tissue2)
+            pygad.GA.bai_weight_dict2 = get_bicodon_weights(tissue2) 
 
         pygad.GA.fit_dict = {}
 
@@ -66,6 +78,7 @@ class GA_super(pygad.GA):
     def __init__(self, aa_seq, generations, threads):
         self.time_fit = []
         self.tic = time.time() # start timer
+        self.gen = 1
         self.time_limit = 1e10 
         self.pool = Pool(processes=threads)    
         self.threads=threads
@@ -183,10 +196,16 @@ class GA_super(pygad.GA):
 
         if pygad.GA.cai_on:
             cai = get_cai(seq_aa, pygad.GA.cai_weight_dict)
+            if pygad.GA.differential:
+                cai2 = get_cai(seq_aa, pygad.GA.cai_weight_dict2)
+                cai = cai-cai2
             fitness += cai*cai_w
 
         if pygad.GA.bai_on:
             bai = get_bai(seq_aa, pygad.GA.bai_weight_dict)
+            if pygad.GA.differential:
+                bai2 = get_bai(seq_aa, pygad.GA.bai_weight_dict2)
+                bai = bai-bai2
             fitness += bai*bai_w
 
         if pygad.GA.cpg_on:
@@ -244,6 +263,11 @@ def callback_generation(ga_instance):
     Args:
         ga_instance ([type]): [description]
     """
+    if ga_instance.gen%100 == 0:
+        print(f"Generation: {ga_instance.gen}")
+        print(f"Time Passed: {time.time() - ga_instance.tic} seconds\n")
+    ga_instance.gen = ga_instance.gen + 1
+
     last_fitness = ga_instance.best_solution()[1]
     # print("Generation = {generation}".format(generation=ga_instance.generations_completed))
     # print("Fitness    = {fitness}".format(fitness=ga_instance.best_solution()[1]))
