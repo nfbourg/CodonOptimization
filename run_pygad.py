@@ -65,10 +65,13 @@ class Updated_GA(pygad.GA):
         pygad.GA.differential = differential
         pygad.GA.cai_weight_dict = get_codon_weights(tissue)
         pygad.GA.bai_weight_dict = get_bicodon_weights(tissue) 
+        pygad.GA.bicodon_dict = {}
 
         if differential:
             pygad.GA.cai_weight_dict2 = get_codon_weights(tissue2)
             pygad.GA.bai_weight_dict2 = get_bicodon_weights(tissue2) 
+            pygad.GA.bicodon_dict2 = {}
+
 
         pygad.GA.fit_dict = {}
 
@@ -202,8 +205,10 @@ class GA_super(pygad.GA):
             fitness += cai*cai_w
 
         if pygad.GA.bai_on:
+            # bai = get_bai(seq_aa, pygad.GA.bai_weight_dict, pygad.GA.bicodon_dict)
             bai = get_bai(seq_aa, pygad.GA.bai_weight_dict)
             if pygad.GA.differential:
+                # bai2 = get_bai(seq_aa, pygad.GA.bai_weight_dict2, pygad.GA.bicodon_dict2)
                 bai2 = get_bai(seq_aa, pygad.GA.bai_weight_dict2)
                 bai = bai-bai2
             fitness += bai*bai_w
