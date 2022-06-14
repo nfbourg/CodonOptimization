@@ -235,3 +235,5 @@ tests/benchmark/population/.ipynb_checkpoints/3h_pah25-checkpoint.csv
 __pycache__/general_functions.cpython-37.pyc
 __pycache__/metrics.cpython-37.pyc
 __pycache__/*
+.ipynb_checkpoints
+tests/testing/tmp

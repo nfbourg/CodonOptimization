@@ -272,3 +272,69 @@ def callback_generation(ga_instance):
     # print("Generation = {generation}".format(generation=ga_instance.generations_completed))
     # print("Fitness    = {fitness}".format(fitness=ga_instance.best_solution()[1]))
     # print("Change     = {change}\n".format(change=ga_instance.best_solution()[1] - last_fitness))
+
+import yaml
+
+def read_yaml(config_file):
+    with open(config_file) as f:
+        params = yaml.safe_load(f)
+    return params
+
+def main():
+    # config_file = sys.argv[1]
+    config_file = 'test/main_tester/config.yaml'
+    print(read_yaml(config_file))
+    # ga_input = '/grid/home/nbourgeois/wip/cdo_sarah/ATP7B.pep.fas' #sequence pep.fas Input
+    # tissue = 'Liver' # Tissue type for CoCoPuts
+    # filename = 'ATP7B_gen{}_pop{}'
+
+    # sys.path.insert(1, '/grid/home/nbourgeois/codonOpt')
+
+    # # os.chdir(pygad_loc)/
+    # # import run_pygad
+    # # os.chdir(cwd)/
+
+
+    # cai_on = False
+    # bai_on = True
+    # cpg_on = False
+    # pas_on = False # PolyA
+    # sps_on = False # Splicing
+
+
+    # (keys, seqs) = readFasta(ga_input)
+    # if len(seqs) == 1:
+    #     aa_seq=str(seqs[0])
+        
+    # gen = int(sys.argv[1])
+    # pop = int(sys.argv[2])
+
+    # prefix=filename.format(gen,pop)
+    # print(prefix)
+
+    # aa_seq=aa_seq
+    # tissue=tissue
+    # tic = time.time()
+    # ga = run_GA(aa_seq, 
+    #         tissue, 
+    #         generations=gen,
+    #         pop_size=pop,
+    #         cai_on = cai_on, 
+    #         bai_on = bai_on, 
+    #         cpg_on = cpg_on,
+    #         threads=10)
+    # toc = time.time()
+
+    # solution, solution_fitness, solution_idx = ga.best_solution()
+    # seq_aa = ''.join([ga.codon_to_int[x] for x in solution])
+    # print("NT Sequence of the best solution : {seq_aa}".format(seq_aa=seq_aa))
+    # print("Fitness value of the best solution = {solution_fitness}".format(solution_fitness=solution_fitness))
+    # print("Index of the best solution : {solution_idx}".format(solution_idx=solution_idx))
+
+    # if ga.best_solution_generation != -1:
+    #     print("Best fitness value reached after {best_solution_generation} generations.".format(best_solution_generation=ga.best_solution_generation))
+
+    # print(f"Time Elapsed: {toc-tic}")
+
+if __name__ == '__main__':
+    main()
