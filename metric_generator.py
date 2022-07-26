@@ -62,11 +62,14 @@ class MetricGenerator():
                 df[metric] = self.run_metric(metric)
             df.index = self.seq_ids
             self.all_metrics = df
-        try:
-            df = df.merge(self.phe_data,left_index=True,right_index=True,how='left')
-        except AttributeError as e:
-            pass
-        return(df)
+        if self.phe_data is None:
+            return(df)
+        else:
+            try:
+                df = df.merge(self.phe_data,left_index=True,right_index=True,how='left')
+            except AttributeError as e:
+                pass
+            return(df)
 
     def run_metric(self,met_key):
         met_func = self.func_dict[met_key]
