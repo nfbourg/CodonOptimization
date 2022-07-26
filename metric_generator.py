@@ -62,11 +62,22 @@ class MetricGenerator():
                 df[metric] = self.run_metric(metric)
             df.index = self.seq_ids
             self.all_metrics = df
+<<<<<<< HEAD
         try:
             df = df.merge(self.phe_data,left_index=True,right_index=True,how='left')
         except AttributeError as e:
             pass
         return(df)
+=======
+        if self.phe_data is None:
+            return(df)
+        else:
+            try:
+                df = df.merge(self.phe_data,left_index=True,right_index=True,how='left')
+            except AttributeError as e:
+                pass
+            return(df)
+>>>>>>> metric_generator
 
     def run_metric(self,met_key):
         met_func = self.func_dict[met_key]
@@ -101,7 +112,11 @@ class MetricGenerator():
     def codon_freq_int(self,seq):
         freqs = self.codon_freq_dist(seq)
         freqs = np.array(freqs) 
+<<<<<<< HEAD
         freq_sum = freqs[freqs > .45].sum()
+=======
+        freq_sum = freqs[freqs < .9].sum()
+>>>>>>> metric_generator
         return(freq_sum)
     # def calc_codon_freq():
 
@@ -248,5 +263,9 @@ def load_codon_freq_tab(tissue):
 #     def int_to_str(self,sol):
 #         """converts a codon list[int] to aa string"""
 #         seq_aa = ''.join([self.codon_to_int[x] for x in sol])
+<<<<<<< HEAD
 #         return seq_aa
 
+=======
+#         return seq_aa
+>>>>>>> metric_generator
