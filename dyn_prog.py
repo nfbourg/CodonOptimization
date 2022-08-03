@@ -1,48 +1,49 @@
-from concurrent.futures import thread
-from re import L
+# from concurrent.futures import thread
+# from re import L
 from general_functions import *
 from metrics import *
-import time
-from multiprocessing.pool import Pool
-from datetime import datetime
+# import time
+# from multiprocessing.pool import Pool
+# from datetime import datetime
 
 class Optimizer():
 
     def __init__(self, aa_seq):
-
+        if not aa_seq.endswith('*'):
+            aa_seq = aa_seq + '*'
+            self.added=True
         self.bai_weight_dict = get_bicodon_weights('Liver') 
         self.init_parameters(aa_seq)
-        self.result = list(range(len(aa_seq)))
+        self.result = [None] * len(aa_seq)
         self.standby = {}
+        self.result[0] = 'ATG'
 
-
-    def optimize(self,ind):
-        if ind==0:
-            self.result[ind] = 'ATG'
-            self.codons = 'ATG'
-            return(1)
-            # for codon in self.codon_space[ind]:
-            #     bicodon = 'ATG' + codon
-            #     bai = (self.bai_weight_dict['ATG' + codon])
-            #     if bai > cmax:
-            #         cmax=bai
-            #         self.result[ind] = codon
-            return(cmax)
+    def optimize(self):
+        self.optimize_ind(len(self.result)-1)
+        if self.added:
+            return(''.join(self.result[:-1]))
         else:
-            self.optimize(ind-1)
+            return(''.join(self.result))
 
-            for codon in self.codon_space[ind]:
-                bicodon = self.result[ind-1] + codon
-                bai = (self.bai_weight_dict[bicodon])
-                if bai > cmax:
-                    cmax=bai
-                    self.result[ind] = codon
-            
+    def optimize_ind(self,ind):
 
+        # for codon1 in self.gene_space[ind-2]:
+        if self.result[ind-2] is None:
+            self.optimize_ind(ind-1)
+        cmax=0
+        codon1 = self.result[ind-2]
+        for codon2 in self.gene_space[ind-1]:
+            for codon3 in self.gene_space[ind]:
+                bicodon1 = codon1 + codon2
+                bicodon2 = codon2 + codon3
+                bai_tri = np.exp(len( self.result) * np.log( self.bai_weight_dict[bicodon1] * self.bai_weight_dict[bicodon2] ) )
+                if bai_tri > cmax:
+                    cmax=bai_tri
+                    self.result[ind-2] = codon1
+                    self.result[ind-1] = codon2
+                    self.result[ind] = codon3
+           
 
-
-            last = self.optimize(ind-1)
-            lcodon = self.result[ind-1]
 
     def init_parameters(self, aa_seq,
             codon_usage_table_loc=os.path.join(pygad_loc,'references/codon_usage.getex.txt')):
