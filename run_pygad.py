@@ -1,3 +1,4 @@
+from concurrent.futures import thread
 import pygad
 from general_functions import *
 from metrics import *
@@ -10,10 +11,11 @@ from datetime import datetime
 def run_GA(aa_seq, 
            tissue, 
            generations,
+           pop_size=750,
            cai_on = True, 
            bai_on = True, 
            cpg_on = True, 
-           differential = True, 
+           differential = False, 
            tissue2 = 'Heart_Atrial_Appendage',
            threads = 1):
     """Wrapper to initialize and run the genetic algorithm
@@ -37,7 +39,7 @@ def run_GA(aa_seq,
     print(f'Start Time: {current_time}')
     pygad.GA = Updated_GA(tissue,cai_on,bai_on,cpg_on,differential,tissue2)
 
-    ga_instance = GA_super(aa_seq, generations, threads)
+    ga_instance = GA_super(aa_seq, generations, pop_size, threads)
 
     ga_instance.run()
 
@@ -65,28 +67,32 @@ class Updated_GA(pygad.GA):
         pygad.GA.differential = differential
         pygad.GA.cai_weight_dict = get_codon_weights(tissue)
         pygad.GA.bai_weight_dict = get_bicodon_weights(tissue) 
+        pygad.GA.bicodon_dict = {}
 
         if differential:
             pygad.GA.cai_weight_dict2 = get_codon_weights(tissue2)
             pygad.GA.bai_weight_dict2 = get_bicodon_weights(tissue2) 
+            pygad.GA.bicodon_dict2 = {}
+
 
         pygad.GA.fit_dict = {}
 
 class GA_super(pygad.GA):
     """Wrapper class for pygad that contains all additional initialization for the codon optimization"""
      
-    def __init__(self, aa_seq, generations, threads):
+    def __init__(self, aa_seq, generations, pop_size, threads):
         self.time_fit = []
         self.tic = time.time() # start timer
         self.gen = 1
         self.time_limit = 1e10 
-        self.pool = Pool(processes=threads)    
+        if threads > 1:
+            self.pool = Pool(processes=threads)    
         self.threads=threads
-        self.init_parameters(aa_seq, generations)
+        self.init_parameters(aa_seq, generations,pop_size)
         # set parameters on the pygad object 
         super().__init__(fitness_func=self.fitness_func,**self.variable_dict)
 
-    def init_parameters(self, aa_seq, generations, 
+    def init_parameters(self, aa_seq, generations, pop_size,
         codon_usage_table_loc=os.path.join(pygad_loc,'references/codon_usage.getex.txt')):
         """Retrieve default parameters for pygad.  
 
@@ -147,7 +153,7 @@ class GA_super(pygad.GA):
 
         gene_space_int = [[codon_to_int[x] for x in y] for y in gene_space]
 
-        population_size = 750
+        population_size = pop_size
         variables={
                 'num_generations':generations,
                 'sol_per_pop':population_size, 
@@ -202,8 +208,10 @@ class GA_super(pygad.GA):
             fitness += cai*cai_w
 
         if pygad.GA.bai_on:
+            # bai = get_bai(seq_aa, pygad.GA.bai_weight_dict, pygad.GA.bicodon_dict)
             bai = get_bai(seq_aa, pygad.GA.bai_weight_dict)
             if pygad.GA.differential:
+                # bai2 = get_bai(seq_aa, pygad.GA.bai_weight_dict2, pygad.GA.bicodon_dict2)
                 bai2 = get_bai(seq_aa, pygad.GA.bai_weight_dict2)
                 bai = bai-bai2
             fitness += bai*bai_w
@@ -265,10 +273,12 @@ def callback_generation(ga_instance):
     """
     if ga_instance.gen%100 == 0:
         print(f"Generation: {ga_instance.gen}")
-        print(f"Time Passed: {time.time() - ga_instance.tic} seconds\n")
+        print(f"Time Passed: {time.time() - ga_instance.tic} seconds")
+        print(f"Fitness: { ga_instance.best_solution()[1]}\n")
     ga_instance.gen = ga_instance.gen + 1
 
     last_fitness = ga_instance.best_solution()[1]
+
     # print("Generation = {generation}".format(generation=ga_instance.generations_completed))
     # print("Fitness    = {fitness}".format(fitness=ga_instance.best_solution()[1]))
     # print("Change     = {change}\n".format(change=ga_instance.best_solution()[1] - last_fitness))

@@ -42,7 +42,7 @@ class MetricGenerator():
     def init_rel_codon_freq(self,tissue):
         self.codon_freq = load_codon_freq_tab(tissue)
         self.func_dict['codon_freq'] = self.codon_freq_dist
-        self.func_dict['codon_freq_int'] = self.codon_freq_int
+        self.func_dict['codon_freq_sum'] = self.codon_freq_sum
 
     def init_cai_bai(self,tissue):
         self.cai_weight_dict = get_codon_weights(tissue)
@@ -101,7 +101,7 @@ class MetricGenerator():
         freqs = [self.codon_freq[seq[i:i+3]] for i in range(0, len(seq)-3, 3)] #convert to codon_list -> use weight dictionary
         return(freqs)
 
-    def codon_freq_int(self,seq):
+    def codon_freq_sum(self,seq):
         freqs = self.codon_freq_dist(seq)
         freqs = np.array(freqs) 
         freq_sum = freqs[freqs > .45].sum()

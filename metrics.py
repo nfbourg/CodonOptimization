@@ -214,6 +214,32 @@ def get_bai(seq, weight_dict):
     bai = geo_mean(weights)
     return(bai)
 
+def get_bai_sped(seq, weight_dict, bicodon_dict):
+    if type(weight_dict) is str:
+        weight_dict = get_bicodon_weights(weight_dict)
+        
+    slicer_size = 10
+    ind=0
+    weights = []
+    seq = seq[:-3]
+    while ind < (len(seq)):
+        sub_seq = seq[ind:ind+(slicer_size*3)]
+        if sub_seq in bicodon_dict.keys():
+            tmp_weight = bicodon_dict[sub_seq]
+        else:
+            tmp_weights = [weight_dict[sub_seq[i:i+6]] for i in range(0, len(sub_seq)-3, 3)]
+            print(tmp_weights)
+            tmp_weight = np.prod(tmp_weights)
+            bicodon_dict[sub_seq] = tmp_weight
+        weights.append(tmp_weight)
+        ind+=(slicer_size-1)*3
+    # sliding window bicodon, excludes the last codon
+#     weights = [weight_dict[seq[i:i+6]] for i in range(0, len(seq)-6, 3)] #convert to codon_list -> use weight dictionary
+    tmp = np.array(weights)
+    tmp = np.log(tmp)
+    bai = np.exp(tmp.sum() / (len(seq)/3 -1))
+#     bai = (np.prod(weights))**(3/(len(seq)))
+    return(bai)
 # def fitness_func(solution, solution_idx):
     
 #     global all_sols
