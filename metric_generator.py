@@ -26,6 +26,7 @@ class MetricGenerator():
 
         
         self.func_dict['CpG'] = get_cpg
+        self.func_dict['Codon_Dist'] = get_codon_dist
         self.func_dict['Junc_Dist'] = count_cpg_junc
         self.func_dict['HSC'] = count_HSC
         self.func_dict['MFE'] = get_mfe
