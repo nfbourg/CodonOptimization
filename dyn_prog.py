@@ -83,56 +83,60 @@ class Optimizer():
         self.chain_codon(ind)
         print(ind,end=' ')
 
-
-
-    def chain_codon(self, ind):
+    def score_chain(self, new_chain):
 
         def calc_chain_bai(new_chain,tissue):
             seq = ''.join(new_chain) + 'TAA'
             sub_bai = get_bai(seq,self.bai_weight_dict[tissue])
             return(sub_bai)
+                    
+        sub_bai_list = [calc_chain_bai(new_chain,tissue) for tissue in self.tissues]
+        sub_bai_gmean = geo_mean(sub_bai_list)
+
+        if self.differential:
+            sub_neg_bai_list = [calc_chain_bai(new_chain,tissue) for tissue in self.ntissues]
+            sub_bai_gmean = sub_bai_gmean - geo_mean(sub_neg_bai_list)
+                        ## somehow zeroes appear below
+                        #     sub_bai_gmean = -2
+                        # else:
+        return(sub_bai_gmean)
+
+    def chain_codon(self, ind):
+
+
 
         self.codon_chains[ind] = {}
         for codon in self.gene_space[ind]:
             cmax=-999
-            if ind+1 < len(self.gene_space):
+            if ind+1 < len(self.gene_space): # cehck if last codon
                 peek_ind = ind+1
                 max_ind = min(peek_ind+self.depth, len(self.gene_space))
-                new_codon_products = product([codon],*self.gene_space[peek_ind:max_ind])
-                for new_codons in new_codon_products:
-                # for codon2 in self.gene_space[ind+1]:
-                    # new_codons = [codon,codon2]
-                    for chain_key in self.codon_chains[ind-1]:
-                        # print(new_codons)
-                        new_chain = self.codon_chains[ind-1][chain_key].copy()
-                        new_chain.extend(new_codons)
-                                    
-                        sub_bai_list = [calc_chain_bai(new_chain,tissue) for tissue in self.tissues]
-                        sub_bai_gmean = geo_mean(sub_bai_list)
+                new_codon_list = product([codon],*self.gene_space[peek_ind:max_ind])
+            else: 
+                new_codon_list = [codon]
 
-                        if self.differential:
-                            sub_neg_bai_list = [calc_chain_bai(new_chain,tissue) for tissue in self.ntissues]
-                            sub_bai_gmean = sub_bai_gmean - geo_mean(sub_neg_bai_list)
-                        # if (0 in sub_bai_list):                 ## somehow zeroes appear below
-                        #     sub_bai_gmean = -2
-                        # else:
-                        if sub_bai_gmean > cmax:
-                            cmax = sub_bai_gmean
-                            self.codon_chains[ind][codon] = self.codon_chains[ind-1][chain_key].copy()
-                            self.codon_chains[ind][codon].append(codon)
-            else:
+            for new_codons in new_codon_list:
                 for chain_key in self.codon_chains[ind-1]:
                     new_chain = self.codon_chains[ind-1][chain_key].copy()
-                    new_chain.append(codon)
+                    new_chain.extend(new_codons)
+                    # print(new_codons)
+                    score = self.score_chain(new_chain)
+
+                    if score > cmax:
+                        cmax = score
+                        self.codon_chains[ind][codon] = self.codon_chains[ind-1][chain_key].copy()
+                        self.codon_chains[ind][codon].append(codon)
+
+            # else:
+            #     for chain_key in self.codon_chains[ind-1]:
+            #         new_chain = self.codon_chains[ind-1][chain_key].copy()
+            #         new_chain.append(codon)
                                 
-                    sub_bai_list = [calc_chain_bai(new_chain,tissue) for tissue in self.tissues]
-                    # if (0 in sub_bai_list):                 ## somehow zeroes appear below
-                    #     sub_bai_gmean = -2
-                    # else:
-                    sub_bai_gmean = geo_mean(sub_bai_list)
-                    if sub_bai_gmean > cmax:
-                        cmax = sub_bai_gmean
-                        self.codon_chains[ind][codon] = new_chain
+            #         score = self.score_chain(new_chain)
+
+            #         if score > cmax:
+            #             cmax = score
+            #             self.codon_chains[ind][codon] = new_chain
                                             # if self.differential:
                     #     tri_neg_bai_list = [calc_tri_bai(bicodon1,bicodon2,ntissue) for ntissue in self.ntissues]
                     #     if (0 in tri_bai_list):                 ## somehow zeroes appear below
