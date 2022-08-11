@@ -13,14 +13,16 @@ class Optimizer():
         if not aa_seq.endswith('*'):
             aa_seq = aa_seq + '*'
             self.added=True
-        
+        else:
+            self.added=False
+
         if type(tissues) is str:
             self.tissues = [tissues]
         else:
             self.tissues = list(tissues)
 
+        self.bai_weight_dict = {}
         for tissue in self.tissues:
-            self.bai_weight_dict = {}
             self.bai_weight_dict[tissue] = get_bicodon_weights(tissue) 
 
         if ntissues is None:
@@ -37,20 +39,34 @@ class Optimizer():
 
         self.init_parameters(aa_seq)
         self.result = [None] * len(aa_seq)
-        self.standby = {}
+        self.result[0] = 'ATG'
         self.codon_chains = [None] * len(aa_seq)
-        self.codon_chains[0] = {'ATG':['ATG']}
+        self.codon_chains[0] = {self.result[0]:[self.result[0]]}
         self.codon_chains[1] = {}
         for codon in self.gene_space[1]:
-            self.codon_chains[1][codon] = ['ATG',codon]
+            self.codon_chains[1][codon] = [self.result[0],codon]
 
-        
+    def calculate_tissue_bai(self,seq):
+        bais = []
+        for tissue in self.tissues:
+            bais.append(get_bai(seq,self.bai_weight_dict[tissue]))
+        return geo_mean(bais)    
+
+    def trim(self, nt_ind):
+        codon_ind = int(np.floor((nt_ind-1)/3))
+        codon = self.result[codon_ind]
+        if len(self.gene_space)>1:
+            self.gene_space[codon_ind].remove(codon)
+            for i in range(codon_ind+1, len(self.result)):
+                self.codon_chains[i] = None
+        else:
+            print('Cannot trim, gene space too small.')
+        return self.optimize()
+
     def optimize(self):
-
         self.chain_ind(len(self.result)-1)
         self.result = self.codon_chains[-1]['TAA'].copy()
         if self.added:
-
             return(''.join(self.result[:-1]))
         else:
             return(''.join(self.result))
@@ -63,35 +79,6 @@ class Optimizer():
             self.chain_ind(ind-1)
 
         self.chain_bai(ind)
-        print(ind,end=' ')
-
-
-        # self.result[ind-2] = codon1
-        # self.result[ind-1] = codon2
-        # self.result[ind] = codon3  
-
-    # def optimize(self):
-
-    #     self.optimize_ind(len(self.result)-1)
-    #     if self.added:
-    #         return(''.join(self.result[:-1]))
-    #     else:
-    #         return(''.join(self.result))
-
-    # def optimize_ind(self,ind):
-
-    #     # for codon1 in self.gene_space[ind-2]:
-    #     if self.result[ind-2] is None:
-    #         self.optimize_ind(ind-1)
-
-    #     try: 
-    #         codon1,codon2,codon3 = self.chain_bai(ind)
-    #     except UnboundLocalError:
-    #         print(ind)
-    #         return
-    #     self.result[ind-2] = codon1
-    #     self.result[ind-1] = codon2
-    #     self.result[ind] = codon3  
 
 
     def chain_bai(self, ind):
@@ -101,7 +88,6 @@ class Optimizer():
             sub_bai = get_bai(seq,self.bai_weight_dict[tissue])
             return(sub_bai)
 
-        cmax=-999
         self.codon_chains[ind] = {}
         for codon in self.gene_space[ind]:
             cmax=-999
@@ -147,42 +133,38 @@ class Optimizer():
         # return(maxcodon1,maxcodon2,maxcodon3)
 
 
-    def get_maximal_bai(self, ind):
+    # def get_maximal_bai(self, ind):
 
-        def calc_tri_bai(bicodon1,bicodon2,tissue):
-            tri_bai = np.exp(len( self.result) * np.log( self.bai_weight_dict[tissue][bicodon1] * self.bai_weight_dict[tissue][bicodon2] ) )
-            return(tri_bai)
+    #     def calc_tri_bai(bicodon1,bicodon2,tissue):
+    #         tri_bai = np.exp(len( self.result) * np.log( self.bai_weight_dict[tissue][bicodon1] * self.bai_weight_dict[tissue][bicodon2] ) )
+    #         return(tri_bai)
 
-        def calc_tri_neg_bai(bicodon1,bicodon2,tissue):
-            tri_neg_bai = np.exp(len( self.result) * np.log( self.bai_weight_dict[tissue][bicodon1] * self.bai_weight_dict[tissue][bicodon2] ) )
-            return(tri_neg_bai)
+    #     cmax=-999
+    #     codon1 = self.result[ind-2]
+    #     for codon2 in self.gene_space[ind-1]:
+    #         for codon3 in self.gene_space[ind]:
+    #             bicodon1 = codon1 + codon2
+    #             bicodon2 = codon2 + codon3
 
-        cmax=-999
-        codon1 = self.result[ind-2]
-        for codon2 in self.gene_space[ind-1]:
-            for codon3 in self.gene_space[ind]:
-                bicodon1 = codon1 + codon2
-                bicodon2 = codon2 + codon3
+    #             tri_bai_list = [calc_tri_bai(bicodon1,bicodon2,tissue) for tissue in self.tissues]
+    #             if (0 in tri_bai_list):                 ## somehow zeroes appear below
+    #                 tri_bai_gmean = -2
+    #             else:
+    #                 tri_bai_gmean = geo_mean(tri_bai_list)
 
-                tri_bai_list = [calc_tri_bai(bicodon1,bicodon2,tissue) for tissue in self.tissues]
-                if (0 in tri_bai_list):                 ## somehow zeroes appear below
-                    tri_bai_gmean = -2
-                else:
-                    tri_bai_gmean = geo_mean(tri_bai_list)
+    #             if self.differential:
+    #                 tri_neg_bai_list = [calc_tri_bai(bicodon1,bicodon2,ntissue) for ntissue in self.ntissues]
+    #                 if (0 in tri_bai_list):                 ## somehow zeroes appear below
+    #                     tri_bai_gmean = -2
+    #                 else:
+    #                     tri_bai_gmean = tri_bai_gmean - geo_mean(tri_neg_bai_list)
 
-                if self.differential:
-                    tri_neg_bai_list = [calc_tri_bai(bicodon1,bicodon2,ntissue) for ntissue in self.ntissues]
-                    if (0 in tri_bai_list):                 ## somehow zeroes appear below
-                        tri_bai_gmean = -2
-                    else:
-                        tri_bai_gmean = tri_bai_gmean - geo_mean(tri_neg_bai_list)
-
-                if tri_bai_gmean > cmax:
-                    cmax=tri_bai_gmean   
-                    maxcodon1 = codon1
-                    maxcodon2 = codon2
-                    maxcodon3 = codon3
-        return(maxcodon1,maxcodon2,maxcodon3)
+    #             if tri_bai_gmean > cmax:
+    #                 cmax=tri_bai_gmean   
+    #                 maxcodon1 = codon1
+    #                 maxcodon2 = codon2
+    #                 maxcodon3 = codon3
+    #     return(maxcodon1,maxcodon2,maxcodon3)
 
     def init_parameters(self, aa_seq,
             codon_usage_table_loc=os.path.join(pygad_loc,'references/codon_usage.getex.txt')):
