@@ -2,6 +2,7 @@
 # from re import L
 from collections import defaultdict
 from general_functions import *
+from itertools import product
 from metrics import *
 # import time
 # from multiprocessing.pool import Pool
@@ -38,6 +39,8 @@ class Optimizer():
                 self.differential=True
 
         self.init_parameters(aa_seq)
+        self.depth=1
+
         self.result = [None] * len(aa_seq)
         self.result[0] = 'ATG'
         self.codon_chains = [None] * len(aa_seq)
@@ -64,7 +67,7 @@ class Optimizer():
         return self.optimize()
 
     def optimize(self):
-        self.chain_ind(len(self.result)-1)
+        self.check_chain(len(self.result)-1)
         self.result = self.codon_chains[-1]['TAA'].copy()
         if self.added:
             return(''.join(self.result[:-1]))
@@ -72,16 +75,17 @@ class Optimizer():
             return(''.join(self.result))
 
    
-    def chain_ind(self,ind):
-        print(ind,end=' ')
+    def check_chain(self,ind):
         # for codon1 in self.gene_space[ind-2]:
         if self.codon_chains[ind] is None:
-            self.chain_ind(ind-1)
+            self.check_chain(ind-1)
 
-        self.chain_bai(ind)
+        self.chain_codon(ind)
+        print(ind,end=' ')
 
 
-    def chain_bai(self, ind):
+
+    def chain_codon(self, ind):
 
         def calc_chain_bai(new_chain,tissue):
             seq = ''.join(new_chain) + 'TAA'
@@ -92,11 +96,16 @@ class Optimizer():
         for codon in self.gene_space[ind]:
             cmax=-999
             if ind+1 < len(self.gene_space):
-                for codon2 in self.gene_space[ind+1]:
+                peek_ind = ind+1
+                max_ind = min(peek_ind+self.depth, len(self.gene_space))
+                new_codon_products = product([codon],*self.gene_space[peek_ind:max_ind])
+                for new_codons in new_codon_products:
+                # for codon2 in self.gene_space[ind+1]:
+                    # new_codons = [codon,codon2]
                     for chain_key in self.codon_chains[ind-1]:
+                        # print(new_codons)
                         new_chain = self.codon_chains[ind-1][chain_key].copy()
-                        new_chain.append(codon)
-                        new_chain.append(codon2)
+                        new_chain.extend(new_codons)
                                     
                         sub_bai_list = [calc_chain_bai(new_chain,tissue) for tissue in self.tissues]
                         sub_bai_gmean = geo_mean(sub_bai_list)
@@ -109,7 +118,8 @@ class Optimizer():
                         # else:
                         if sub_bai_gmean > cmax:
                             cmax = sub_bai_gmean
-                            self.codon_chains[ind][codon] = new_chain[:-1]
+                            self.codon_chains[ind][codon] = self.codon_chains[ind-1][chain_key].copy()
+                            self.codon_chains[ind][codon].append(codon)
             else:
                 for chain_key in self.codon_chains[ind-1]:
                     new_chain = self.codon_chains[ind-1][chain_key].copy()
