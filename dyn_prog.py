@@ -10,7 +10,7 @@ from metrics import *
 
 class Optimizer():
 
-    def __init__(self, aa_seq, tissues='Liver', ntissues=None):
+    def __init__(self, aa_seq, tissues='Liver', ntissues=None, prefix_codon=None):
         if not aa_seq.endswith('*'):
             aa_seq = aa_seq + '*'
             self.added=True
@@ -38,12 +38,18 @@ class Optimizer():
                 self.bai_weight_dict[ntissue] = get_bicodon_weights(ntissue) 
                 self.differential=True
 
-        self.init_parameters(aa_seq)
+        self.init_parameters(aa_seq,prefix_codon)
         self.depth=1
+        self.prefix = prefix_codon
 
-        self.result = [None] * len(aa_seq)
-        self.result[0] = 'ATG'
-        self.codon_chains = [None] * len(aa_seq)
+        if prefix_codon is None:
+            self.result = [None] * len(aa_seq)
+            self.result[0] = 'ATG'
+        else:
+            self.result = [None] * ( len(aa_seq)+1 )
+            self.result[0] = prefix_codon
+
+        self.codon_chains = [None] * len(self.result)
         self.codon_chains[0] = {self.result[0]:[self.result[0]]}
         self.codon_chains[1] = {}
         for codon in self.gene_space[1]:
@@ -69,10 +75,14 @@ class Optimizer():
     def optimize(self):
         self.check_chain(len(self.result)-1)
         self.result = self.codon_chains[-1]['TAA'].copy()
-        if self.added:
-            return(''.join(self.result[:-1]))
+        if self.prefix is not None:
+            end_result = self.result[1:]
         else:
-            return(''.join(self.result))
+            end_result = self.result
+        if self.added:
+            return(''.join(end_result[:-1]))
+        else:
+            return(''.join(end_result))
 
    
     def check_chain(self,ind):
@@ -81,20 +91,19 @@ class Optimizer():
             self.check_chain(ind-1)
 
         self.chain_codon(ind)
-        print(ind,end=' ')
 
-    def score_chain(self, new_chain):
+    def score_chain(self, chain):
 
-        def calc_chain_bai(new_chain,tissue):
-            seq = ''.join(new_chain) + 'TAA'
+        def calc_chain_bai(chain,tissue):
+            seq = ''.join(chain) + 'TAA'
             sub_bai = get_bai(seq,self.bai_weight_dict[tissue])
             return(sub_bai)
                     
-        sub_bai_list = [calc_chain_bai(new_chain,tissue) for tissue in self.tissues]
+        sub_bai_list = [calc_chain_bai(chain,tissue) for tissue in self.tissues]
         sub_bai_gmean = geo_mean(sub_bai_list)
 
         if self.differential:
-            sub_neg_bai_list = [calc_chain_bai(new_chain,tissue) for tissue in self.ntissues]
+            sub_neg_bai_list = [calc_chain_bai(chain,tissue) for tissue in self.ntissues]
             sub_bai_gmean = sub_bai_gmean - geo_mean(sub_neg_bai_list)
                         ## somehow zeroes appear below
                         #     sub_bai_gmean = -2
@@ -103,11 +112,10 @@ class Optimizer():
 
     def chain_codon(self, ind):
 
-
-
         self.codon_chains[ind] = {}
         for codon in self.gene_space[ind]:
             cmax=-999
+
             if ind+1 < len(self.gene_space): # cehck if last codon
                 peek_ind = ind+1
                 max_ind = min(peek_ind+self.depth, len(self.gene_space))
@@ -119,11 +127,10 @@ class Optimizer():
                 for chain_key in self.codon_chains[ind-1]:
                     new_chain = self.codon_chains[ind-1][chain_key].copy()
                     new_chain.extend(new_codons)
-                    # print(new_codons)
-                    score = self.score_chain(new_chain)
+                    chain_score = self.score_chain(new_chain)
 
-                    if score > cmax:
-                        cmax = score
+                    if chain_score > cmax:
+                        cmax = chain_score
                         self.codon_chains[ind][codon] = self.codon_chains[ind-1][chain_key].copy()
                         self.codon_chains[ind][codon].append(codon)
 
@@ -180,7 +187,7 @@ class Optimizer():
     #                 maxcodon3 = codon3
     #     return(maxcodon1,maxcodon2,maxcodon3)
 
-    def init_parameters(self, aa_seq,
+    def init_parameters(self, aa_seq, prefix_codon=None,
             codon_usage_table_loc=os.path.join(pygad_loc,'references/codon_usage.getex.txt')):
         """Retrieve default parameters for pygad.  
 
@@ -238,6 +245,9 @@ class Optimizer():
         for aa in aa_seq:
             all_cds = back_table[aa]
             gene_space.append(all_cds)
+
+        if prefix_codon is not None:
+            gene_space.insert(0,prefix_codon)
 
         # gene_space_int = [[codon_to_int[x] for x in y] for y in gene_space]
                 
