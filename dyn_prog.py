@@ -37,6 +37,8 @@ class Optimizer():
             for ntissue in self.ntissues:
                 self.bai_weight_dict[ntissue] = get_bicodon_weights(ntissue) 
                 self.differential=True
+        
+        self.perf_count=0
 
         self.init_parameters(aa_seq,prefix_codon)
         self.depth=1
@@ -95,6 +97,7 @@ class Optimizer():
     def score_chain(self, chain):
 
         def calc_chain_bai(chain,tissue):
+            self.perf_count+=1
             seq = ''.join(chain) + 'TAA'
             sub_bai = get_bai(seq,self.bai_weight_dict[tissue])
             return(sub_bai)
