@@ -17,6 +17,8 @@ class Optimizer():
         else:
             self.added=False
 
+
+        #### start init tissues ####
         if type(tissues) is str:
             self.tissues = [tissues]
         else:
@@ -37,6 +39,7 @@ class Optimizer():
             for ntissue in self.ntissues:
                 self.bai_weight_dict[ntissue] = get_bicodon_weights(ntissue) 
                 self.differential=True
+        #### end init tissues ####
         
         self.perf_count=0
 
