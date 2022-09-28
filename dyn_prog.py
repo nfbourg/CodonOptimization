@@ -10,13 +10,12 @@ from metrics import *
 
 class Optimizer():
 
-    def __init__(self, aa_seq, tissues='Liver', ntissues=None, prefix_codon=None):
+    def __init__(self, aa_seq, tissues='Liver', ntissues=None, prefix_codon=None, ramp=False):
         if not aa_seq.endswith('*'):
             aa_seq = aa_seq + '*'
             self.added=True
         else:
             self.added=False
-
 
         #### start init tissues ####
         if type(tissues) is str:
@@ -46,6 +45,12 @@ class Optimizer():
         self.init_parameters(aa_seq,prefix_codon)
         self.depth=1
         self.prefix = prefix_codon
+
+        # ramp params
+        self.ramp = ramp
+        self.start_bai = .5
+        self.min_bai  = .25
+        self.ramp_end = 150
 
         if prefix_codon is None:
             self.result = [None] * len(aa_seq)
@@ -89,7 +94,6 @@ class Optimizer():
         else:
             return(''.join(end_result))
 
-   
     def check_chain(self,ind):
         # for codon1 in self.gene_space[ind-2]:
         if self.codon_chains[ind] is None:
@@ -99,7 +103,7 @@ class Optimizer():
 
     def score_chain(self, chain):
 
-        def calc_chain_bai(chain,tissue):
+        def calc_chain_bai(chain, tissue):
             self.perf_count+=1
             seq = ''.join(chain) + 'TAA'
             sub_bai = get_bai(seq,self.bai_weight_dict[tissue])
@@ -114,6 +118,20 @@ class Optimizer():
                         ## somehow zeroes appear below
                         #     sub_bai_gmean = -2
                         # else:
+                        
+        if self.ramp:
+            if len(chain) > self.ramp_end: 
+                return(sub_bai_gmean)
+            else:
+                if sub_bai_gmean < self.min_bai
+                    return(0)
+
+                ramp_target = 1 - .6 *(self.ramp_end -len(chain) +1)/self.ramp_end 
+                sub_bai_gmean = 1 - abs(sub_bai_gmean-ramp_target)
+
+
+        
+
         return(sub_bai_gmean)
 
     def chain_codon(self, ind):
