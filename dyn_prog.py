@@ -10,7 +10,7 @@ from metrics import *
 
 class Optimizer():
 
-    def __init__(self, aa_seq, tissues='Liver', ntissues=None, prefix_codon=None, ramp=False):
+    def __init__(self, aa_seq, tissues='Liver', ntissues=None, prefix_codon=None, ramp=False, og_ramp=False, og_seq=''):
         if not aa_seq.endswith('*'):
             aa_seq = aa_seq + '*'
             self.added=True
@@ -48,9 +48,17 @@ class Optimizer():
 
         # ramp params
         self.ramp = ramp
-        self.start_bai = .5
-        self.min_bai  = .25
-        self.ramp_end = 150
+        self.og_ramp = og_ramp
+        self.start_bai = .4
+        self.min_bai  = .2
+        self.ramp_end = 600
+        self.ramp_start = 350
+
+        if og_ramp:
+            aa_start = int( self.ramp_start/3)
+            for i in range(aa_start):
+                ind = i*3
+                self.gene_space[i] = [og_seq[ind:ind+3]]
 
         if prefix_codon is None:
             self.result = [None] * len(aa_seq)
@@ -65,6 +73,7 @@ class Optimizer():
         for codon in self.gene_space[1]:
             self.codon_chains[1][codon] = [self.result[0],codon]
 
+ 
     def calculate_tissue_bai(self,seq):
         bais = []
         for tissue in self.tissues:
@@ -108,7 +117,8 @@ class Optimizer():
             seq = ''.join(chain) + 'TAA'
             sub_bai = get_bai(seq,self.bai_weight_dict[tissue])
             return(sub_bai)
-                    
+  
+
         sub_bai_list = [calc_chain_bai(chain,tissue) for tissue in self.tissues]
         sub_bai_gmean = geo_mean(sub_bai_list)
 
@@ -118,16 +128,38 @@ class Optimizer():
                         ## somehow zeroes appear below
                         #     sub_bai_gmean = -2
                         # else:
-                        
+
         if self.ramp:
-            if len(chain) > self.ramp_end: 
+            if len(chain)*3 > self.ramp_end: 
                 return(sub_bai_gmean)
             else:
-                if sub_bai_gmean < self.min_bai
+
+                sub_bai_list = [calc_chain_bai(chain[-20:],tissue) for tissue in self.tissues]
+                sub_bai_gmean = geo_mean(sub_bai_list)    
+
+                if sub_bai_gmean < self.min_bai:
                     return(0)
 
-                ramp_target = 1 - .6 *(self.ramp_end -len(chain) +1)/self.ramp_end 
+                ramp_target = 1 - (1-self.start_bai) * (self.ramp_end -len(chain)*3 +1)/self.ramp_end 
                 sub_bai_gmean = 1 - abs(sub_bai_gmean-ramp_target)
+
+        if self.og_ramp:
+            if len(chain)*3 < self.ramp_start:
+                self.start_bai = sub_bai_gmean
+                return(1)
+            if len(chain)*3 > self.ramp_end: 
+                return(sub_bai_gmean)
+            else:
+
+                sub_bai_list = [calc_chain_bai(chain[-10:],tissue) for tissue in self.tissues]
+                sub_bai_gmean = geo_mean(sub_bai_list)    
+                
+                if sub_bai_gmean < self.min_bai:
+                    return(0)
+
+                ramp_target = 1 - (1-self.start_bai) * (self.ramp_end -len(chain)*3 +1)/(self.ramp_end - self.ramp_start)
+                sub_bai_gmean = 1 - abs(sub_bai_gmean-ramp_target)
+        
 
 
         
