@@ -6,7 +6,7 @@ import sys
 import os
 import subprocess as sp
 import ipywidgets as widgets
-
+import collections
 import pandas as pd
 from pkg_resources import resource_filename
 # from spliceai.utils import one_hot_encode
@@ -151,6 +151,16 @@ def get_cai(seq, weight_dict):
     weights = [weight_dict[seq[i:i+3]] for i in range(0, len(seq)-3, 3)] #convert to codon_list -> use weight dictionary
     cai = geo_mean(weights)
     return(cai)
+
+
+def get_codon_dist(seq):
+    'calculate the distribution of how many of each codons there are'
+    codons = [str(seq[i:i+3]) for i in range(0,len(seq),3) ]
+    codon_dict = collections.defaultdict(lambda: 0)
+    for codon in codons:
+        codon_dict[codon] += 1/len(seq)
+    return(codon_dict)
+
 
 def geo_mean(iterable):
     a = np.array(iterable)
