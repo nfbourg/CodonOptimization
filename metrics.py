@@ -9,7 +9,7 @@ import ipywidgets as widgets
 
 import pandas as pd
 from pkg_resources import resource_filename
-from spliceai.utils import one_hot_encode
+# from spliceai.utils import one_hot_encode
 import numpy as np
 
 pygad_loc = os.path.dirname(os.path.abspath(__file__))

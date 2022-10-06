@@ -51,6 +51,7 @@ class MetricGenerator():
 
         self.bai_weight_dict = get_bicodon_weights(tissue)
         self.func_dict['BAI'] = self.get_bai
+        self.func_dict['BAI-percentile'] = self.get_percentile_bai
 
     def run_all_metrics(self):
         try: 
@@ -71,9 +72,14 @@ class MetricGenerator():
                 pass
             return(df)
 
-    def run_metric(self,met_key):
+    def run_metric(self, met_key):
         met_func = self.func_dict[met_key]
         metric_vals = [met_func(x) for x in self.seqs]
+        return metric_vals
+
+    def run_metric_arg(self, met_key, arg):
+        met_func = self.func_dict[met_key]
+        metric_vals = [met_func(x, arg) for x in self.seqs]
         return metric_vals
 
     def get_median_cai(self,seq):
@@ -84,6 +90,9 @@ class MetricGenerator():
 
     def get_bai(self,seq):
         return get_bai(seq,self.bai_weight_dict)
+
+    def get_percentile_bai(self,seq, percentile=10):
+        return get_percentile_bai(seq,self.bai_weight_dict,percentile)
 
     def init_junc_func(self):
         nts = ['A','T','C','G']
@@ -123,8 +132,24 @@ class MetricGenerator():
         return get_junc_freq
     
     
-# def calc_relative_
+def get_percentile_bai(seq,weight_dict,percentile):
+    num_subseqs = int(round(100/percentile))
+    bai_list = []
 
+    if num_subseqs*3 > len(seq):
+        print('Too small percentile')
+        return([None]*num_subseqs)
+
+    cds_per = int(np.ceil( (len(seq)/num_subseqs) / 3 ))
+    start = 0
+    while(start < len(seq)):
+        stop = start + cds_per*3 + 3
+        subseq = seq[start:stop]
+        start = stop - 3
+        bai = get_bai(subseq,weight_dict)
+        bai_list.append(bai)
+
+    return(bai_list)
 
 def get_median_cai(seq,weight_dict):
     if type(weight_dict) is str:
