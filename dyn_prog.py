@@ -10,55 +10,25 @@ from metrics import *
 
 class Optimizer():
 
-    def __init__(self, aa_seq, tissues='Liver', ntissues=None, prefix_codon=None, ramp=False, og_ramp=False, og_seq=''):
+    def __init__(self, aa_seq, tissues, ntissues=None, 
+                 prefix_codon=None, ramp=False, og_ramp=False, og_seq=''):
         if not aa_seq.endswith('*'):
             aa_seq = aa_seq + '*'
             self.added=True
         else:
             self.added=False
 
-        #### start init tissues ####
-        if type(tissues) is str:
-            self.tissues = [tissues]
-        else:
-            self.tissues = list(tissues)
-
-        self.bai_weight_dict = {}
-        for tissue in self.tissues:
-            self.bai_weight_dict[tissue] = get_bicodon_weights(tissue) 
-
-        if ntissues is None:
-            self.differential=False
-        else:
-            if type(ntissues) is str:
-                self.ntissues = [ntissues]
-            else:
-                self.ntissues = list(ntissues)
-
-            for ntissue in self.ntissues:
-                self.bai_weight_dict[ntissue] = get_bicodon_weights(ntissue) 
-                self.differential=True
-        #### end init tissues ####
-        
-        self.perf_count=0
-
+        self.init_tissues(tissues,ntissues)
+    
         self.init_parameters(aa_seq,prefix_codon)
-        self.depth=1
+
         self.prefix = prefix_codon
 
         # ramp params
         self.ramp = ramp
         self.og_ramp = og_ramp
-        self.start_bai = .4
-        self.min_bai  = .2
-        self.ramp_end = 600
-        self.ramp_start = 350
-
-        if og_ramp:
-            aa_start = int( self.ramp_start/3)
-            for i in range(aa_start):
-                ind = i*3
-                self.gene_space[i] = [og_seq[ind:ind+3]]
+        if ramp or og_ramp:
+            self.init_ramp(og_seq)
 
         if prefix_codon is None:
             self.result = [None] * len(aa_seq)
@@ -73,7 +43,40 @@ class Optimizer():
         for codon in self.gene_space[1]:
             self.codon_chains[1][codon] = [self.result[0],codon]
 
- 
+    def init_tissues(self,tissues,ntissues):
+
+        def input_to_list(tissues):
+            if type(tissues) is str:
+                return [tissues]
+            else:
+                return list(tissues)
+
+        self.tissues = input_to_list(tissues)
+        dict_tissues = self.tissues.copy()
+
+        if ntissues is None:
+            self.differential=False
+        else:
+            self.differential=True
+            self.ntissues = input_to_list(ntissues)
+            dict_tissues.extend(self.ntissues)
+
+        self.bai_weight_dict = {}
+        for tissue in dict_tissues:
+            self.bai_weight_dict[tissue] = get_bicodon_weights(tissue) 
+
+    def init_ramp(self,og_seq):
+        self.start_bai = .4
+        self.min_bai  = .2
+        self.ramp_end = 600
+        self.ramp_start = 350
+
+        if self.og_ramp:
+            aa_start = int( self.ramp_start/3)
+            for i in range(aa_start):
+                ind = i*3
+                self.gene_space[i] = [og_seq[ind:ind+3]]
+
     def calculate_tissue_bai(self,seq):
         bais = []
         for tissue in self.tissues:
@@ -190,59 +193,6 @@ class Optimizer():
                         self.codon_chains[ind][codon] = self.codon_chains[ind-1][chain_key].copy()
                         self.codon_chains[ind][codon].append(codon)
 
-            # else:
-            #     for chain_key in self.codon_chains[ind-1]:
-            #         new_chain = self.codon_chains[ind-1][chain_key].copy()
-            #         new_chain.append(codon)
-                                
-            #         score = self.score_chain(new_chain)
-
-            #         if score > cmax:
-            #             cmax = score
-            #             self.codon_chains[ind][codon] = new_chain
-                                            # if self.differential:
-                    #     tri_neg_bai_list = [calc_tri_bai(bicodon1,bicodon2,ntissue) for ntissue in self.ntissues]
-                    #     if (0 in tri_bai_list):                 ## somehow zeroes appear below
-                    #         tri_bai_gmean = -2
-                    #     else:
-                    #         tri_bai_gmean = tri_bai_gmean - geo_mean(tri_neg_bai_list)
-        
-        # return(maxcodon1,maxcodon2,maxcodon3)
-
-
-    # def get_maximal_bai(self, ind):
-
-    #     def calc_tri_bai(bicodon1,bicodon2,tissue):
-    #         tri_bai = np.exp(len( self.result) * np.log( self.bai_weight_dict[tissue][bicodon1] * self.bai_weight_dict[tissue][bicodon2] ) )
-    #         return(tri_bai)
-
-    #     cmax=-999
-    #     codon1 = self.result[ind-2]
-    #     for codon2 in self.gene_space[ind-1]:
-    #         for codon3 in self.gene_space[ind]:
-    #             bicodon1 = codon1 + codon2
-    #             bicodon2 = codon2 + codon3
-
-    #             tri_bai_list = [calc_tri_bai(bicodon1,bicodon2,tissue) for tissue in self.tissues]
-    #             if (0 in tri_bai_list):                 ## somehow zeroes appear below
-    #                 tri_bai_gmean = -2
-    #             else:
-    #                 tri_bai_gmean = geo_mean(tri_bai_list)
-
-    #             if self.differential:
-    #                 tri_neg_bai_list = [calc_tri_bai(bicodon1,bicodon2,ntissue) for ntissue in self.ntissues]
-    #                 if (0 in tri_bai_list):                 ## somehow zeroes appear below
-    #                     tri_bai_gmean = -2
-    #                 else:
-    #                     tri_bai_gmean = tri_bai_gmean - geo_mean(tri_neg_bai_list)
-
-    #             if tri_bai_gmean > cmax:
-    #                 cmax=tri_bai_gmean   
-    #                 maxcodon1 = codon1
-    #                 maxcodon2 = codon2
-    #                 maxcodon3 = codon3
-    #     return(maxcodon1,maxcodon2,maxcodon3)
-
     def init_parameters(self, aa_seq, prefix_codon=None,
             codon_usage_table_loc=os.path.join(pygad_loc,'references/codon_usage.getex.txt')):
         """Retrieve default parameters for pygad.  
@@ -308,6 +258,9 @@ class Optimizer():
         # gene_space_int = [[codon_to_int[x] for x in y] for y in gene_space]
                 
         self.gene_space = gene_space
+
+        self.perf_count=0
+        self.depth=1
         # self.codon_to_int = codon_to_int
         # self.gene_space_int = gene_space_int
 
