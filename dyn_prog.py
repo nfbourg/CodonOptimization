@@ -25,6 +25,7 @@ class Optimizer():
         self.prefix = prefix_codon
 
         # ramp params
+        self.method = 'BAI'
         self.ramp = ramp
         self.og_ramp = og_ramp
         if ramp or og_ramp:
@@ -62,8 +63,10 @@ class Optimizer():
             dict_tissues.extend(self.ntissues)
 
         self.bai_weight_dict = {}
+        self.cai_weight_dict = {}
         for tissue in dict_tissues:
             self.bai_weight_dict[tissue] = get_bicodon_weights(tissue) 
+            self.cai_weight_dict[tissue] = get_codon_weights(tissue) 
 
     def init_ramp(self,og_seq):
         self.start_bai = .4
@@ -118,7 +121,10 @@ class Optimizer():
         def calc_chain_bai(chain, tissue):
             self.perf_count+=1
             seq = ''.join(chain) + 'TAA'
-            sub_bai = get_bai(seq,self.bai_weight_dict[tissue])
+            if self.method == 'CAI':
+                sub_bai = \
+            else:
+                sub_bai = get_bai(seq,self.bai_weight_dict[tissue])
             return(sub_bai)
   
 
