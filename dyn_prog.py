@@ -122,7 +122,7 @@ class Optimizer():
             self.perf_count+=1
             seq = ''.join(chain) + 'TAA'
             if self.method == 'CAI':
-                sub_bai = \
+                sub_bai = get_cai(seq,self.cai_weight_dict[tissue])
             else:
                 sub_bai = get_bai(seq,self.bai_weight_dict[tissue])
             return(sub_bai)
