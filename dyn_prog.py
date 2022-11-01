@@ -11,7 +11,7 @@ from metrics import *
 class Optimizer():
 
     def __init__(self, aa_seq, tissues, ntissues=None, 
-                 prefix_codon=None, ramp=False, og_ramp=False, og_seq=''):
+                 prefix_codon=None, ramp=False, wt_ramp=False, wt_seq='', mimic=False):
         if not aa_seq.endswith('*'):
             aa_seq = aa_seq + '*'
             self.added=True
@@ -26,10 +26,16 @@ class Optimizer():
 
         # ramp params
         self.method = 'BAI'
+        self.mimic = mimic
         self.ramp = ramp
-        self.og_ramp = og_ramp
-        if ramp or og_ramp:
-            self.init_ramp(og_seq)
+        self.wt_ramp = wt_ramp
+        self.wt_seq = wt_seq
+        
+        if ramp or wt_ramp:
+            self.init_ramp(wt_seq)
+
+        if mimic:
+            self.init_mimic(depth=7)
 
         if prefix_codon is None:
             self.result = [None] * len(aa_seq)
@@ -68,17 +74,21 @@ class Optimizer():
             self.bai_weight_dict[tissue] = get_bicodon_weights(tissue) 
             self.cai_weight_dict[tissue] = get_codon_weights(tissue) 
 
-    def init_ramp(self,og_seq):
+    def init_mimic(self,depth):
+        self.depth=depth
+
+    def init_ramp(self,wt_seq):
+
         self.start_bai = .4
         self.min_bai  = .2
         self.ramp_end = 600
         self.ramp_start = 350
 
-        if self.og_ramp:
+        if self.wt_ramp:
             aa_start = int( self.ramp_start/3)
             for i in range(aa_start):
                 ind = i*3
-                self.gene_space[i] = [og_seq[ind:ind+3]]
+                self.gene_space[i] = [wt_seq[ind:ind+3]]
 
     def calculate_tissue_bai(self,seq):
         bais = []
@@ -86,34 +96,43 @@ class Optimizer():
             bais.append(get_bai(seq,self.bai_weight_dict[tissue]))
         return geo_mean(bais)    
 
-    def trim(self, nt_ind):
-        codon_ind = int(np.floor((nt_ind-1)/3))
-        codon = self.result[codon_ind]
-        if len(self.gene_space)>1:
-            self.gene_space[codon_ind].remove(codon)
-            for i in range(codon_ind+1, len(self.result)):
-                self.codon_chains[i] = None
-        else:
-            print('Cannot trim, gene space too small.')
-        return self.optimize()
+
+    # What is this for???
+    # def trim(self, nt_ind):
+    #     codon_ind = int(np.floor((nt_ind-1)/3))
+    #     codon = self.result[codon_ind]
+    #     if len(self.gene_space)>1:
+    #         self.gene_space[codon_ind].remove(codon)
+    #         for i in range(codon_ind+1, len(self.result)):
+    #             self.codon_chains[i] = None
+    #     else:
+    #         print('Cannot trim, gene space too small.')
+    #     return self.optimize()
 
     def optimize(self):
         self.check_chain(len(self.result)-1)
         self.result = self.codon_chains[-1]['TAA'].copy()
+
         if self.prefix is not None:
             end_result = self.result[1:]
         else:
             end_result = self.result
+
         if self.added:
-            return(''.join(end_result[:-1]))
+            final_seq = ''.join(end_result[:-1])
+            print(self.calculate_tissue_bai(final_seq))
+            return(final_seq)
         else:
-            return(''.join(end_result))
+            final_seq = ''.join(end_result)
+            print(self.calculate_tissue_bai(final_seq))
+            return(final_seq)
+
 
     def check_chain(self,ind):
-        # for codon1 in self.gene_space[ind-2]:
+
         if self.codon_chains[ind] is None:
             self.check_chain(ind-1)
-
+        print(ind,end=' ')
         self.chain_codon(ind)
 
     def score_chain(self, chain):
@@ -126,22 +145,41 @@ class Optimizer():
             else:
                 sub_bai = get_bai(seq,self.bai_weight_dict[tissue])
             return(sub_bai)
-  
+
 
         sub_bai_list = [calc_chain_bai(chain,tissue) for tissue in self.tissues]
         sub_bai_gmean = geo_mean(sub_bai_list)
+        
 
         if self.differential:
             sub_neg_bai_list = [calc_chain_bai(chain,tissue) for tissue in self.ntissues]
             sub_bai_gmean = sub_bai_gmean - geo_mean(sub_neg_bai_list)
                         ## somehow zeroes appear below
-                        #     sub_bai_gmean = -2
-                        # else:
 
-        if self.ramp:
-            if len(chain)*3 > self.ramp_end: 
-                return(sub_bai_gmean)
-            else:
+
+        elif self.mimic:
+
+            depth = self.depth
+
+            new_bai_list = [calc_chain_bai(chain[-depth:],tissue) for tissue in self.tissues]
+            new_bai_mean = geo_mean(new_bai_list)    
+
+
+            wt_start = max(0,len(chain)*3 - depth*3)
+            wt_end = len(chain)*3 
+            wt_bai_list = [get_bai(self.wt_seq[wt_start:wt_end],self.bai_weight_dict[tissue]) for tissue in self.tissues]
+            wt_bai_gmean = geo_mean(wt_bai_list)    
+
+            bai_target = wt_bai_gmean + .3
+            bai_target = min(bai_target,1)
+
+            sub_bai_gmean = 1 - abs(new_bai_mean - bai_target)
+
+            if new_bai_mean < wt_bai_gmean: # discourage dropping below wt
+                return(sub_bai_gmean*.5)
+
+        elif self.ramp:
+            if len(chain)*3 <= self.ramp_end: 
 
                 sub_bai_list = [calc_chain_bai(chain[-20:],tissue) for tissue in self.tissues]
                 sub_bai_gmean = geo_mean(sub_bai_list)    
@@ -152,14 +190,13 @@ class Optimizer():
                 ramp_target = 1 - (1-self.start_bai) * (self.ramp_end -len(chain)*3 +1)/self.ramp_end 
                 sub_bai_gmean = 1 - abs(sub_bai_gmean-ramp_target)
 
-        if self.og_ramp:
+        elif self.wt_ramp:
             if len(chain)*3 < self.ramp_start:
                 self.start_bai = sub_bai_gmean
                 return(1)
             if len(chain)*3 > self.ramp_end: 
                 return(sub_bai_gmean)
             else:
-
                 sub_bai_list = [calc_chain_bai(chain[-10:],tissue) for tissue in self.tissues]
                 sub_bai_gmean = geo_mean(sub_bai_list)    
                 
@@ -168,10 +205,6 @@ class Optimizer():
 
                 ramp_target = 1 - (1-self.start_bai) * (self.ramp_end -len(chain)*3 +1)/(self.ramp_end - self.ramp_start)
                 sub_bai_gmean = 1 - abs(sub_bai_gmean-ramp_target)
-        
-
-
-        
 
         return(sub_bai_gmean)
 
@@ -186,7 +219,7 @@ class Optimizer():
                 max_ind = min(peek_ind+self.depth, len(self.gene_space))
                 new_codon_list = product([codon],*self.gene_space[peek_ind:max_ind])
             else: 
-                new_codon_list = [codon]
+                new_codon_list = [[codon]]
 
             for new_codons in new_codon_list:
                 for chain_key in self.codon_chains[ind-1]:
@@ -198,6 +231,7 @@ class Optimizer():
                         cmax = chain_score
                         self.codon_chains[ind][codon] = self.codon_chains[ind-1][chain_key].copy()
                         self.codon_chains[ind][codon].append(codon)
+
 
     def init_parameters(self, aa_seq, prefix_codon=None,
             codon_usage_table_loc=os.path.join(pygad_loc,'references/codon_usage.getex.txt')):
