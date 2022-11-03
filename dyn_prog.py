@@ -35,7 +35,7 @@ class Optimizer():
             self.init_ramp(wt_seq)
 
         if mimic:
-            self.init_mimic(depth=7)
+            self.init_mimic(depth=1)
 
         if prefix_codon is None:
             self.result = [None] * len(aa_seq)
@@ -146,9 +146,9 @@ class Optimizer():
                 sub_bai = get_bai(seq,self.bai_weight_dict[tissue])
             return(sub_bai)
 
-
-        sub_bai_list = [calc_chain_bai(chain,tissue) for tissue in self.tissues]
-        sub_bai_gmean = geo_mean(sub_bai_list)
+        if not self.mimic:
+            sub_bai_list = [calc_chain_bai(chain,tissue) for tissue in self.tissues]
+            sub_bai_gmean = geo_mean(sub_bai_list)
         
 
         if self.differential:
@@ -159,23 +159,26 @@ class Optimizer():
 
         elif self.mimic:
 
-            depth = self.depth
+            depth = self.depth + 2
 
             new_bai_list = [calc_chain_bai(chain[-depth:],tissue) for tissue in self.tissues]
+
             new_bai_mean = geo_mean(new_bai_list)    
 
 
             wt_start = max(0,len(chain)*3 - depth*3)
             wt_end = len(chain)*3 
-            wt_bai_list = [get_bai(self.wt_seq[wt_start:wt_end],self.bai_weight_dict[tissue]) for tissue in self.tissues]
+            wt_bai_list = [get_bai(self.wt_seq[wt_start:wt_end]+ 'TAA',self.bai_weight_dict[tissue]) for tissue in self.tissues]
             wt_bai_gmean = geo_mean(wt_bai_list)    
 
             bai_target = wt_bai_gmean + .3
             bai_target = min(bai_target,1)
 
             sub_bai_gmean = 1 - abs(new_bai_mean - bai_target)
+            # print(new_bai_mean, wt_bai_gmean)
 
             if new_bai_mean < wt_bai_gmean: # discourage dropping below wt
+                return(.01)
                 return(sub_bai_gmean*.5)
 
         elif self.ramp:
