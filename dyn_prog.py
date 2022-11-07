@@ -97,18 +97,6 @@ class Optimizer():
         return geo_mean(bais)    
 
 
-    # What is this for???
-    # def trim(self, nt_ind):
-    #     codon_ind = int(np.floor((nt_ind-1)/3))
-    #     codon = self.result[codon_ind]
-    #     if len(self.gene_space)>1:
-    #         self.gene_space[codon_ind].remove(codon)
-    #         for i in range(codon_ind+1, len(self.result)):
-    #             self.codon_chains[i] = None
-    #     else:
-    #         print('Cannot trim, gene space too small.')
-    #     return self.optimize()
-
     def optimize(self):
         self.check_chain(len(self.result)-1)
         self.result = self.codon_chains[-1]['TAA'].copy()
@@ -165,7 +153,6 @@ class Optimizer():
 
             new_bai_mean = geo_mean(new_bai_list)    
 
-
             wt_start = max(0,len(chain)*3 - depth*3)
             wt_end = len(chain)*3 
             wt_bai_list = [get_bai(self.wt_seq[wt_start:wt_end]+ 'TAA',self.bai_weight_dict[tissue]) for tissue in self.tissues]
@@ -174,7 +161,7 @@ class Optimizer():
             bai_target = wt_bai_gmean + .3
             bai_target = min(bai_target,1)
 
-            sub_bai_gmean = 1 - abs(new_bai_mean - bai_target)
+            sub_bai_gmean = 1 - np.sqrt((new_bai_mean)^2 - (bai_target)^2)
             # print(new_bai_mean, wt_bai_gmean)
 
             if new_bai_mean < wt_bai_gmean: # discourage dropping below wt
@@ -307,3 +294,15 @@ class Optimizer():
         # self.codon_to_int = codon_to_int
         # self.gene_space_int = gene_space_int
 
+
+    # What is this for???
+    # def trim(self, nt_ind):
+    #     codon_ind = int(np.floor((nt_ind-1)/3))
+    #     codon = self.result[codon_ind]
+    #     if len(self.gene_space)>1:
+    #         self.gene_space[codon_ind].remove(codon)
+    #         for i in range(codon_ind+1, len(self.result)):
+    #             self.codon_chains[i] = None
+    #     else:
+    #         print('Cannot trim, gene space too small.')
+    #     return self.optimize()
