@@ -159,7 +159,7 @@ class Optimizer():
 
         elif self.mimic:
 
-            depth = self.depth + 2
+            depth = self.depth + 2 # default dyn program needs to go back 2 for bai 
 
             new_bai_list = [calc_chain_bai(chain[-depth:],tissue) for tissue in self.tissues]
 
