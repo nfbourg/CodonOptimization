@@ -10,7 +10,7 @@ from metrics import *
 
 class Optimizer():
 
-    def __init__(self, aa_seq, tissues, ntissues=None, 
+    def __init__(self, aa_seq, tissues, ntissues=None, negative=False,
                  prefix_codon=None, ramp=False, wt_ramp=False, wt_seq='', mimic=False):
         if not aa_seq.endswith('*'):
             aa_seq = aa_seq + '*'
@@ -27,6 +27,7 @@ class Optimizer():
         # ramp params
         self.method = 'BAI'
         self.mimic = mimic
+        self.negative = negative
         self.ramp = ramp
         self.wt_ramp = wt_ramp
         self.wt_seq = wt_seq
@@ -171,15 +172,15 @@ class Optimizer():
             wt_bai_list = [get_bai(self.wt_seq[wt_start:wt_end]+ 'TAA',self.bai_weight_dict[tissue]) for tissue in self.tissues]
             wt_bai_gmean = geo_mean(wt_bai_list)    
 
-            bai_target = wt_bai_gmean + .3
+            bai_target = wt_bai_gmean + .2
             bai_target = min(bai_target,1)
 
             sub_bai_gmean = 1 - abs(new_bai_mean - bai_target)
             # print(new_bai_mean, wt_bai_gmean)
 
             if new_bai_mean < wt_bai_gmean: # discourage dropping below wt
-                return(.01)
-                return(sub_bai_gmean*.5)
+                sub_bai_gmean = .01
+                # return(sub_bai_gmean*.5)
 
         elif self.ramp:
             if len(chain)*3 <= self.ramp_end: 
@@ -209,7 +210,12 @@ class Optimizer():
                 ramp_target = 1 - (1-self.start_bai) * (self.ramp_end -len(chain)*3 +1)/(self.ramp_end - self.ramp_start)
                 sub_bai_gmean = 1 - abs(sub_bai_gmean-ramp_target)
 
-        return(sub_bai_gmean)
+
+        if self.negative:
+            return(1-sub_bai_gmean)
+
+        else:
+            return(sub_bai_gmean)
 
     def chain_codon(self, ind):
 
