@@ -161,7 +161,7 @@ class Optimizer():
             bai_target = wt_bai_gmean + .3
             bai_target = min(bai_target,1)
 
-            sub_bai_gmean = 1 - np.sqrt((new_bai_mean)^2 - (bai_target)^2)
+            sub_bai_gmean = 1 - np.sqrt(abs(((new_bai_mean)**2 - (bai_target)**2)))
             # print(new_bai_mean, wt_bai_gmean)
 
             if new_bai_mean < wt_bai_gmean: # discourage dropping below wt
