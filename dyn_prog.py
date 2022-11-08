@@ -11,7 +11,7 @@ from metrics import *
 class Optimizer():
 
     def __init__(self, aa_seq, tissues, ntissues=None, negative=False,
-                 prefix_codon=None, ramp=False, wt_ramp=False, wt_seq='', mimic=False):
+                 prefix_codon=None, ramp=False, wt_ramp=False, wt_seq='', mimic=False, cpg_max=None):
         if not aa_seq.endswith('*'):
             aa_seq = aa_seq + '*'
             self.added=True
@@ -31,7 +31,8 @@ class Optimizer():
         self.ramp = ramp
         self.wt_ramp = wt_ramp
         self.wt_seq = wt_seq
-        
+        self.cpg_max = cpg_max
+
         if ramp or wt_ramp:
             self.init_ramp(wt_seq)
 
@@ -217,6 +218,28 @@ class Optimizer():
         else:
             return(sub_bai_gmean)
 
+    def cpg_adjustment(self, chain, chain_score):
+
+        def calc_chain_cpg(chain):
+
+            depth = self.depth + 2
+
+            seq = ''.join(chain[-depth:])
+            sub_cpg = 1-get_cpg(seq)
+
+            return(sub_cpg)
+       
+        # check for cpgs
+        if self.cpg_max is not None:
+            cpg_perc = calc_chain_cpg(chain)
+            if cpg_perc <= self.cpg_max:
+                pass
+            else:
+                divisor = (cpg_perc + .001) / ( + .001)
+                chain_score = chain_score * cpg_perc / divisor
+        
+        return(chain_score)
+
     def chain_codon(self, ind):
 
         self.codon_chains[ind] = {}
@@ -235,6 +258,7 @@ class Optimizer():
                     new_chain = self.codon_chains[ind-1][chain_key].copy()
                     new_chain.extend(new_codons)
                     chain_score = self.score_chain(new_chain)
+                    chain_score = self.cpg_adjustment(new_chain, chain_score)
 
                     if chain_score > cmax:
                         cmax = chain_score
