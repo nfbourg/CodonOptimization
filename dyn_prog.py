@@ -35,7 +35,7 @@ class Optimizer():
             self.init_ramp(wt_seq)
 
         if mimic:
-            self.init_mimic(depth=1)
+            self.init_mimic(depth=1,target_range=.4)
 
         if prefix_codon is None:
             self.result = [None] * len(aa_seq)
@@ -74,8 +74,9 @@ class Optimizer():
             self.bai_weight_dict[tissue] = get_bicodon_weights(tissue) 
             self.cai_weight_dict[tissue] = get_codon_weights(tissue) 
 
-    def init_mimic(self,depth):
+    def init_mimic(self,depth,target_range):
         self.depth=depth
+        self.target_range=target_range
 
     def init_ramp(self,wt_seq):
 
@@ -158,7 +159,7 @@ class Optimizer():
             wt_bai_list = [get_bai(self.wt_seq[wt_start:wt_end]+ 'TAA',self.bai_weight_dict[tissue]) for tissue in self.tissues]
             wt_bai_gmean = geo_mean(wt_bai_list)    
 
-            bai_target = wt_bai_gmean + .3
+            bai_target = wt_bai_gmean + self.target_range
             bai_target = min(bai_target,1)
 
             sub_bai_gmean = 1 - np.sqrt(abs(((new_bai_mean)**2 - (bai_target)**2)))
