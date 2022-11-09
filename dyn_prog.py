@@ -11,7 +11,7 @@ from metrics import *
 class Optimizer():
 
     def __init__(self, aa_seq, tissues, ntissues=None, negative=False,
-                 prefix_codon=None, ramp=False, wt_ramp=False, wt_seq='', mimic=False, cpg_max=None):
+                 prefix_codon=None, ramp=False, wt_ramp=False, wt_seq='', mimic=False, cpg_thresh=None):
         if not aa_seq.endswith('*'):
             aa_seq = aa_seq + '*'
             self.added=True
@@ -31,13 +31,14 @@ class Optimizer():
         self.ramp = ramp
         self.wt_ramp = wt_ramp
         self.wt_seq = wt_seq
-        self.cpg_max = cpg_max
+        self.cpg_thresh = cpg_thresh
 
+    
         if ramp or wt_ramp:
             self.init_ramp(wt_seq)
 
         if mimic:
-            self.init_mimic(depth=1)
+            self.init_mimic(depth=1,target_range=.4)
 
         if prefix_codon is None:
             self.result = [None] * len(aa_seq)
@@ -76,8 +77,10 @@ class Optimizer():
             self.bai_weight_dict[tissue] = get_bicodon_weights(tissue) 
             self.cai_weight_dict[tissue] = get_codon_weights(tissue) 
 
-    def init_mimic(self,depth):
+    def init_mimic(self,depth,target_range):
         self.depth=depth
+        self.target_range=.4
+
 
     def init_ramp(self,wt_seq):
 
@@ -173,10 +176,10 @@ class Optimizer():
             wt_bai_list = [get_bai(self.wt_seq[wt_start:wt_end]+ 'TAA',self.bai_weight_dict[tissue]) for tissue in self.tissues]
             wt_bai_gmean = geo_mean(wt_bai_list)    
 
-            bai_target = wt_bai_gmean + .2
+            bai_target = wt_bai_gmean + self.target_range
             bai_target = min(bai_target,1)
 
-            sub_bai_gmean = 1 - abs(new_bai_mean - bai_target)
+            sub_bai_gmean = 1 - np.sqrt(abs(((new_bai_mean)**2 - (bai_target)**2)))
             # print(new_bai_mean, wt_bai_gmean)
 
             if new_bai_mean < wt_bai_gmean: # discourage dropping below wt
@@ -230,9 +233,9 @@ class Optimizer():
             return(sub_cpg)
        
         # check for cpgs
-        if self.cpg_max is not None:
+        if self.cpg_thresh is not None:
             cpg_perc = calc_chain_cpg(chain)
-            if cpg_perc <= self.cpg_max:
+            if cpg_perc <= self.cpg_thresh:
                 pass
             else:
                 divisor = (cpg_perc + .001) / ( + .001)
