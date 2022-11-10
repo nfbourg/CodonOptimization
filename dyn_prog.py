@@ -12,6 +12,20 @@ class Optimizer():
 
     def __init__(self, aa_seq, tissues, ntissues=None, negative=False,
                  prefix_codon=None, ramp=False, wt_ramp=False, wt_seq='', mimic=False, cpg_thresh=None):
+        """Optimizer for Codon Optimization
+
+        Args:
+            aa_seq (_type_): _description_
+            tissues (_type_): _description_
+            ntissues (_type_, optional): _description_. Defaults to None.
+            negative (bool, optional): _description_. Defaults to False.
+            prefix_codon (_type_, optional): _description_. Defaults to None.
+            ramp (bool, optional): _description_. Defaults to False.
+            wt_ramp (bool, optional): _description_. Defaults to False.
+            wt_seq (str, optional): _description_. Defaults to ''.
+            mimic (bool, optional): _description_. Defaults to False.
+            cpg_thresh (_type_, optional): _description_. Defaults to None.
+        """
         if not aa_seq.endswith('*'):
             aa_seq = aa_seq + '*'
             self.added=True
@@ -32,13 +46,13 @@ class Optimizer():
         self.wt_ramp = wt_ramp
         self.wt_seq = wt_seq
         self.cpg_thresh = cpg_thresh
-
+        self.target=None
     
         if ramp or wt_ramp:
             self.init_ramp(wt_seq)
 
         if mimic:
-            self.init_mimic(depth=1,target_range=.4)
+            self.init_mimic()
 
         if prefix_codon is None:
             self.result = [None] * len(aa_seq)
@@ -77,9 +91,9 @@ class Optimizer():
             self.bai_weight_dict[tissue] = get_bicodon_weights(tissue) 
             self.cai_weight_dict[tissue] = get_codon_weights(tissue) 
 
-    def init_mimic(self,depth,target_range):
+    def init_mimic(self,depth=1,target_range=.4):
         self.depth=depth
-        self.target_range=.4
+        self.target_range=target_range
 
 
     def init_ramp(self,wt_seq):
@@ -154,6 +168,9 @@ class Optimizer():
         if not self.mimic:
             sub_bai_list = [calc_chain_bai(chain,tissue) for tissue in self.tissues]
             sub_bai_gmean = geo_mean(sub_bai_list)
+
+            if self.target is not None:
+                sub_bai_gmean = 1 - np.sqrt(abs(((sub_bai_gmean)**2 - (self.target)**2)))
         
 
         if self.differential:
@@ -244,17 +261,30 @@ class Optimizer():
         return(chain_score)
 
     def chain_codon(self, ind):
+        """Optimizing at position ind, with the assumption that position ind-1 
+        is already has the most optimal chain calculated for all codons in ind-1 
+        codon space of ind
+
+        Args:
+            ind (int): index that will be optimized
+        """
+        def remove_cpg(new_codon_list):
+            new_codon_list = [codons for codons in new_codon_list if 'CG' not in ''.join(codons)]
+            return(new_codon_list)
 
         self.codon_chains[ind] = {}
         for codon in self.gene_space[ind]:
             cmax=-999
-
+            
             if ind+1 < len(self.gene_space): # cehck if last codon
                 peek_ind = ind+1
                 max_ind = min(peek_ind+self.depth, len(self.gene_space))
                 new_codon_list = product([codon],*self.gene_space[peek_ind:max_ind])
             else: 
                 new_codon_list = [[codon]]
+
+            # if self.no_cpg:
+            #     new_codon_list = remove_cpg(new_codon_list)
 
             for new_codons in new_codon_list:
                 for chain_key in self.codon_chains[ind-1]:
