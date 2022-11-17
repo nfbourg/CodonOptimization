@@ -1,12 +1,7 @@
-# from concurrent.futures import thread
-# from re import L
-from collections import defaultdict
 from general_functions import *
 from itertools import product
 from metrics import *
-# import time
-# from multiprocessing.pool import Pool
-# from datetime import datetime
+
 
 class Optimizer():
 
@@ -46,10 +41,10 @@ class Optimizer():
         self.wt_ramp = wt_ramp
         self.wt_seq = wt_seq
         self.cpg_thresh = cpg_thresh
-        self.target=None
+        self.target = None
     
         if ramp or wt_ramp:
-            self.init_ramp(wt_seq)
+            self.init_ramp(wt_seq,depth=9)
 
         if mimic:
             self.init_mimic()
@@ -96,12 +91,13 @@ class Optimizer():
         self.target_range=target_range
 
 
-    def init_ramp(self,wt_seq):
+    def init_ramp(self,wt_seq,depth):
 
         self.start_bai = .4
         self.min_bai  = .2
         self.ramp_end = 600
         self.ramp_start = 350
+        self.depth=depth
 
         if self.wt_ramp:
             aa_start = int( self.ramp_start/3)
@@ -193,7 +189,8 @@ class Optimizer():
         elif self.ramp:
             if len(chain)*3 <= self.ramp_end: 
 
-                sub_bai_list = [calc_chain_bai(chain[-20:],tissue) for tissue in self.tissues]
+                depth = self.depth + 2
+                sub_bai_list = [calc_chain_bai(chain[-depth:],tissue) for tissue in self.tissues]
                 sub_bai_gmean = geo_mean(sub_bai_list)    
 
                 if sub_bai_gmean < self.min_bai:
@@ -209,7 +206,9 @@ class Optimizer():
             if len(chain)*3 > self.ramp_end: 
                 return(sub_bai_gmean)
             else:
-                sub_bai_list = [calc_chain_bai(chain[-10:],tissue) for tissue in self.tissues]
+                depth = self.depth + 2
+
+                sub_bai_list = [calc_chain_bai(chain[-depth:],tissue) for tissue in self.tissues]
                 sub_bai_gmean = geo_mean(sub_bai_list)    
                 
                 if sub_bai_gmean < self.min_bai:

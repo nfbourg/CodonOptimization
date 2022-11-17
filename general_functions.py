@@ -2,21 +2,21 @@ import sys
 import os 
 from Bio import SeqIO
 import pandas as pd
-import ipywidgets as widgets
+# import ipywidgets as widgets
 
 pygad_loc = os.path.dirname(os.path.abspath(__file__))
 
-def tissue_opt(pygad_loc=pygad_loc):
-    all_tiss = os.listdir(os.path.join(pygad_loc,'references/CoCoPUTs_codon_usage/codon_usage/'))
-    tissues = [x.split('.')[0] for x in all_tiss]
-    tissues.append('')
-    tis_drop = widgets.Dropdown(
-        options=tissues,
-        value='',
-        description='Tissue:',
-        disabled=False,
-    )
-    return tis_drop
+# def tissue_opt(pygad_loc=pygad_loc):
+#     all_tiss = os.listdir(os.path.join(pygad_loc,'references/CoCoPUTs_codon_usage/codon_usage/'))
+#     tissues = [x.split('.')[0] for x in all_tiss]
+#     tissues.append('')
+#     tis_drop = widgets.Dropdown(
+#         options=tissues,
+#         value='',
+#         description='Tissue:',
+#         disabled=False,
+#     )
+#     return tis_drop
 
 def readFasta( fastaFile: str ):
     fastaId = ''

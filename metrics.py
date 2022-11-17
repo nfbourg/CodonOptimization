@@ -5,7 +5,6 @@ import sys
 # import hashlib
 import os
 import subprocess as sp
-import ipywidgets as widgets
 import collections
 import pandas as pd
 from pkg_resources import resource_filename
