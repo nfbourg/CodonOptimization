@@ -6,21 +6,20 @@ from metrics import *
 class Optimizer():
 
     def __init__(self, aa_seq, tissues, ntissues=None, negative=False,
-                 prefix_codon=None, ramp=False, wt_ramp=False, wt_seq='', mimic=False, cpg_thresh=None):
+                opt_type='Max', prefix_codon=None, wt_seq='', cpg_thresh=None):
         """Optimizer for Codon Optimization
 
         Args:
             aa_seq (_type_): _description_
             tissues (_type_): _description_
+            opt_type (str, optional): Must be in [max, target, ramp, wt_ramp, mimic]. Defaults to False.
+            wt_seq (str, optional): _description_. Defaults to ''.
             ntissues (_type_, optional): _description_. Defaults to None.
             negative (bool, optional): _description_. Defaults to False.
             prefix_codon (_type_, optional): _description_. Defaults to None.
-            ramp (bool, optional): _description_. Defaults to False.
-            wt_ramp (bool, optional): _description_. Defaults to False.
-            wt_seq (str, optional): _description_. Defaults to ''.
-            mimic (bool, optional): _description_. Defaults to False.
             cpg_thresh (_type_, optional): _description_. Defaults to None.
         """
+
         if not aa_seq.endswith('*'):
             aa_seq = aa_seq + '*'
             self.added=True
@@ -31,24 +30,43 @@ class Optimizer():
     
         self.init_parameters(aa_seq,prefix_codon)
 
-        self.prefix = prefix_codon
 
         # ramp params
         self.method = 'BAI'
-        self.mimic = mimic
         self.negative = negative
-        self.ramp = ramp
-        self.wt_ramp = wt_ramp
+
         self.wt_seq = wt_seq
         self.cpg_thresh = cpg_thresh
-        self.target = None
     
-        if ramp or wt_ramp:
-            self.init_ramp(wt_seq,depth=9)
+        self.target = None
+        self.mimic = False
+        self.wt_ramp = False
+        self.ramp = False
 
-        if mimic:
-            self.init_mimic()
+        match opt_type:
 
+            case 'max':
+                pass
+
+            case 'target':
+                self.target = .85 #target
+
+            case 'ramp':
+                self.init_ramp(wt_seq,depth=9)
+                self.ramp = True
+
+            case 'wt_ramp':
+                self.init_ramp(wt_seq,depth=9)
+                self.wt_ramp = True
+
+            case 'mimic':
+                self.init_mimic()
+                self.mimic = True
+
+            case _:
+                raise('Incorrect optimization type')
+
+        
         if prefix_codon is None:
             self.result = [None] * len(aa_seq)
             self.result[0] = 'ATG'
@@ -356,6 +374,53 @@ class Optimizer():
         # self.codon_to_int = codon_to_int
         # self.gene_space_int = gene_space_int
 
+    def optimizer_main(params):
+
+        func_dict={}
+        for key,item in params.items():
+            if key in ['mimic','cpg_thresh','wt_seq','ramp','wt_ramp']:
+                func_dict[key]=item
+                
+        optimizer = Optimizer(aa_seq, tissues="Liver", **func_dict)
+        opt_type = params['opt_type'] 
+        
+        match opt_type:
+            
+            case 'mimic':
+                depth = params['depth']
+                target_range = params['target_range']
+                optimizer.init_mimic(depth,target_range)
+                seq_name = f"mimic_wt_{target_range}d{depth}"
+                optimized_seq = optimizer.optimize()
+        
+            case 'ramp':
+                depth = params['depth']
+                seq_name = f"ramp_d{depth}"
+                optimizer.depth=depth
+                optimized_seq = optimizer.optimize()
+
+            case 'wt_ramp':
+                depth = params['depth']
+                optimizer.depth=depth
+                optimized_seq = optimizer.optimize()
+                seq_name = f"wt_ramp_d{depth}"
+
+            case 'cpg':
+                depth = params['depth']
+                thresh = params['cpg_thresh']
+                tar=.85
+                optimizer.target=tar
+                optimizer.depth=depth
+                optimized_seq = optimizer.optimize()
+                cpg_perc = 1 - get_cpg(optimized_seq)
+                seq_name = f"cpg{round(cpg_perc,2)}_tar{tar}d{depth}t{thresh}"
+            
+            case _ :
+                print('ERROR')
+                
+        fileout = f"vectors/{seq_name}.fa"
+        with open(fileout, "w") as fileo:
+            fileo.write(f">{seq_name}\n{optimized_seq}\n")
 
     # What is this for???
     # def trim(self, nt_ind):
