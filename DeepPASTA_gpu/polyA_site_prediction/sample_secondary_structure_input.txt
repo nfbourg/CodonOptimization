@@ -1,1 +1,0 @@
-../sample_input/polyA_site_prediction/sample_secondary_structure_input.txt
