@@ -166,7 +166,7 @@ def geo_mean(iterable):
     a = np.log(a)
     return np.exp(a.sum() / len(a))
 
-def get_bicodon_weights(tissue):
+def get_bicodon_weights(tissue, default_loc=True):
     
     def bicodon_to_AA(string):
         cod1 = string[:3]
@@ -182,7 +182,10 @@ def get_bicodon_weights(tissue):
      
     # read table
     try:
-        index_loc = os.path.join(pygad_loc,'references/CoCoPUTs_codon_usage/bicodon_usage/',tissue+'.bicodon.txt')
+        if default_loc:
+            index_loc = os.path.join(pygad_loc,'references/CoCoPUTs_codon_usage/bicodon_usage/',tissue+'.bicodon.txt')
+        else:
+            index_loc = os.path.join(tissue)
         codon_table_raw_t = pd.read_csv(index_loc,sep='\t')
 
     except FileNotFoundError:
@@ -210,6 +213,7 @@ def get_bicodon_weights(tissue):
     
     weight_dict = codon_table['weight'].to_dict()
     
+    
     return(weight_dict)
 
 def get_bai(seq, weight_dict):
@@ -218,7 +222,10 @@ def get_bai(seq, weight_dict):
        
     
     # sliding window bicodon, excludes the last codon
-    weights = [weight_dict[seq[i:i+6]] for i in range(0, len(seq)-6, 3)] #convert to codon_list -> use weight dictionary
+    try:    
+        weights = [max(.0001,weight_dict[seq[i:i+6]]) for i in range(0, len(seq)-6, 3)] #convert to codon_list -> use weight dictionary
+    except KeyError:
+        weights = [max(.0001,weight_dict.get(seq[i:i+6], .0001)) for i in range(0, len(seq)-6, 3)] #convert to codon_list -> use weight dictionary
     
     bai = geo_mean(weights)
     return(bai)

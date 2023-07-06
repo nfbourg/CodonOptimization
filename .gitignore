@@ -237,3 +237,12 @@ __pycache__/metrics.cpython-37.pyc
 __pycache__/*
 .ipynb_checkpoints
 tests/testing/tmp
+__pycache__/metrics.cpython-37.pyc
+Misc/cuda.ipynb
+tissue_cocoputs/species/refseq/dna.cgi?cmd=objFile&ids=537&filename=Refseq_Bicod_index.ts
+__pycache__/metrics.cpython-37.pyc
+tissue_cocoputs/species/genbank/*.tsv
+tissue_cocoputs/species/genbank/*.out
+tissue_cocoputs/species/refseq/*.out
+tissue_cocoputs/species/refseq/*.tsv
+tissue_cocoputs/species/tables/*.tsv
