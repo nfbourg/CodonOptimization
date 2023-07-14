@@ -62,6 +62,18 @@ class Optimizer:
             self.result = [None] * len(aa_seq)
             self.result[0] = 'ATG'
 
+        try:
+            self.ramp_end = int(kwargs['ramp_end'])
+        except KeyError:
+            self.ramp_end = 600
+
+            
+        try:
+            self.ramp_start = int(kwargs['ramp_start'])
+        except KeyError:
+            self.ramp_start = 350
+
+
         self.init_tissues(self.tissues)
 
         self.init_parameters(aa_seq)
@@ -154,8 +166,6 @@ class Optimizer:
 
         self.start_bai = .4
         self.min_bai  = .2
-        self.ramp_end = 600
-        self.ramp_start = 350
         self.depth=depth
 
         if self.wt_ramp:
