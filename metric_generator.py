@@ -32,6 +32,7 @@ class MetricGenerator():
         self.func_dict['MFE'] = get_mfe
         self.func_dict['%CG'] = percent_cg
         self.func_dict['%CG3'] = percent_cg3
+        self.func_dict['min_bai'] = self.get_min_bai
         self.init_junc_func()
 
         if wt_loc is not None:
@@ -39,6 +40,16 @@ class MetricGenerator():
             self.wt_metrics = {}
             for metric in self.func_dict.keys():
                 self.wt_metrics[metric] = self.func_dict[metric](self.wt_seq)
+
+    def get_min_bai(self,seq):
+        min_val = 1
+        for i in range(0,len(seq)-9,3):
+            subseq = seq[i:i+9]
+            new_val = self.get_bai(subseq)
+            if new_val < min_val:
+                min_val=new_val
+        return min_val
+
 
     def init_rel_codon_freq(self,tissue):
         self.codon_freq = load_codon_freq_tab(tissue)
@@ -131,7 +142,7 @@ class MetricGenerator():
             return(freq)
 
         return get_junc_freq
-    
+        
     
 def get_percentile_bai(seq,weight_dict,percentile):
     num_subseqs = int(round(100/percentile))
