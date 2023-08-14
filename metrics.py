@@ -18,51 +18,6 @@ def get_cpg(seq):
     cpg_score = ( len(seq) - count * 2 ) / len(seq)  
     return(cpg_score)
 
-# def predictSites_multi_broken( fastaIds,fastaSeqs,threshold=.1):
-
-#     gpu0_avail = gpu_memory_usage(0)
-#     gpu1_avail = gpu_memory_usage(1)
-#     if gpu0_avail + gpu1_avail > 30000:
-#         print('Out of memory\n')
-#         return(-1)
-#     if gpu0_avail < gpu1_avail:
-#         gpu="0"
-#     else:
-#         gpu="1"
-    
-#     os.environ["CUDA_VISIBLE_DEVICES"]=gpu
-
-#     from keras.models import load_model
-#     import tensorflow as tf
-#     from tensorflow import keras
-
-#     results = {}
-#     gpus =tf.config.experimental.list_physical_devices('GPU')
-
-#     try: 
-#         tf.config.experimental.set_virtual_device_configuration(gpus[0],
-#             [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=5000)])
-        
-#         context = 10000
-#         keras.backend.set_learning_phase(0)
-#         paths = ('models/spliceai{}.h5'.format(x) for x in range(1, 6))
-#         models = [load_model(resource_filename('spliceai', x), compile=False ) for x in paths]
-#         for seq_id, seq in zip(fastaIds,fastaSeqs):
-
-#             x = one_hot_encode('N'*(context//2) + str(seq) + 'N'*(context//2))[None, :]
-#             y = np.mean([models[m].predict(x) for m in range(5)], axis=0)
-#             acceptor_prob = y[0, :, 1]
-#             donor_prob = y[0, :, 2]
-#             coord = list( range(1, len( donor_prob ) ) )
-                    
-#             # custom metric
-#             results[seq_id] = (len(acceptor_prob[acceptor_prob > threshold]) + len(donor_prob[donor_prob > threshold]))/2
-#         return(results)
-#     except tf.errors as e:
-#         # Splice AI custome sequeence prediction
-#         print(e,'\n')
-#         return(-1)
-
 def predictSites_multi( fastaIds,fastaSeqs,threshold=.1):
 
     gpu0_avail = gpu_memory_usage(0)
