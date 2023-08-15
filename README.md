@@ -3,6 +3,10 @@ Codon Optimization
 
 This is a codon optimization algorithm to optimize the payload in a gene editing/gene therapy program. The primary metric used is the BAI, and the algorithm works via Dynamic Programming to generate the sequecnce with the Highest BAI. 
 
+The optimizer is the main function to import the optimizer whereas the metric generator is used to compare sequences after optimization. 
+
+Example is with the co_template.ipynb
+
 ## Sources
 ### Source for CAI/BAI calculation:
 - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC340524/
